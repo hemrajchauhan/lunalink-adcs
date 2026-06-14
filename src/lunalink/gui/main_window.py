@@ -2,7 +2,8 @@ from PyQt6.QtWidgets import QMainWindow, QWidget, QLabel, QSplitter, QVBoxLayout
 
 from PyQt6.QtCore import Qt
 
-from ..config import MAIN_WINDOW_WIDTH, MAIN_WINDOW_HEIGHT, LEFT_WINDOW_WIDTH, RIGHT_WINDOW_WIDTH
+from ..config import ( MAIN_WINDOW_WIDTH, MAIN_WINDOW_HEIGHT, LEFT_WINDOW_WIDTH, RIGHT_WINDOW_WIDTH, 
+                        CONTROL_PANEL_HEIGHT, PLOT_PANEL_HEIGHT )
 
 from .views.control_panel import ControlPanel
 from .views.plot_panel import PlotPanel
@@ -21,7 +22,8 @@ class MainWindow(QMainWindow):
 
     def _create_widgets(self):
         self.pyvista_view = PyVistaView()
-        self.control_panel = ControlPanel()
+        self.scene_manager = self.pyvista_view.get_scene_manager()
+        self.control_panel = ControlPanel(self.scene_manager)
         self.plot_panel = PlotPanel()
 
     def _create_layout(self):
@@ -41,6 +43,7 @@ class MainWindow(QMainWindow):
         right_splitter = QSplitter(Qt.Orientation.Vertical)
         right_splitter.addWidget(self.control_panel)
         right_splitter.addWidget(self.plot_panel)
+        right_splitter.setSizes([CONTROL_PANEL_HEIGHT, PLOT_PANEL_HEIGHT])
 
         horizontal_splitter.addWidget(right_splitter)
         horizontal_splitter.setSizes([LEFT_WINDOW_WIDTH, RIGHT_WINDOW_WIDTH])

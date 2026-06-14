@@ -1,0 +1,20 @@
+[
+  {
+    "name": "Earth",
+    "radius_m": 6378137.0,
+    "position_m": [ 0.0, 0.0, 0.0 ],
+    "color": "royalblue"
+  },
+  {
+    "name": "Moon",
+    "radius_m": 1737400.0,
+    "position_m": [ 384400000.0, 0.0, 0.0 ],
+    "color": "lightgray"
+  },
+  {
+    "name": "Sun",
+    "radius_m": 695700000.0,
+    "position_m": [ 149597870700.0, 0.0, 0.0 ],
+    "color": "yellow"
+  }
+]

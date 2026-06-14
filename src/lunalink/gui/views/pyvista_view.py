@@ -23,3 +23,6 @@ class PyVistaView(QWidget):
 
     def get_plotter(self):
         return self.plotter
+
+    def get_scene_manager(self):
+        return self.scene_manager
