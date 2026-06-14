@@ -74,6 +74,14 @@ class SceneManager:
 
         self.focus_on_body("Earth")
 
+    def reload_scene(self):
+        self.plotter.clear()
+        self.body_actors.clear()
+        self.satellite_actors.clear()
+        self.celestial_bodies.clear()
+        self.satellites.clear()
+        self.setup_scene()
+
     def focus_on_body(self, body_name):
         body = next((b for b in self.celestial_bodies if b.name == body_name), None)
         if body is None:

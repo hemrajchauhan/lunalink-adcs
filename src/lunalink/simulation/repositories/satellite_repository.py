@@ -40,6 +40,14 @@ class SatelliteRepository:
         with open(self.path, "w") as file:
             json.dump(data, file, indent=4)
 
+    def update_satellite(self, updated_satellite):
+        satellites = self.load_all()
+        for index, satellite in enumerate(satellites):
+            if satellite.name == updated_satellite.name:
+                satellites[index] = updated_satellite
+                break
+        self.save_all(satellites)
+
     def add_satellite(self, satellite: Satellite) -> None:
         satellites = self.load_all()
         satellites.append(satellite)
@@ -56,3 +64,45 @@ class SatelliteRepository:
             if satellite.name == name:
                 return satellite
         return None
+
+    def get_properties(self, satellite_name: str):
+        satellite = self.get_by_name(satellite_name)
+        if satellite is None:
+            return []
+        return [
+            ("Name", satellite.name),
+            ("Mass (kg)", satellite.mass_kg),
+            ("Color", satellite.color),
+            ("Position X (m)", satellite.position_m[0]),
+            ("Position Y (m)", satellite.position_m[1]),
+            ("Position Z (m)", satellite.position_m[2]),
+            ("Length (m)", satellite.dimensions_m[0]),
+            ("Width (m)", satellite.dimensions_m[1]),
+            ("Height (m)", satellite.dimensions_m[2]),
+        ]
+
+    def save_properties(self, original_name: str, properties: dict):
+        satellite = Satellite(
+            name=properties["Name"],
+            mass_kg=float(properties["Mass (kg)"]),
+            dimensions_m=np.array([
+                float(properties["Length (m)"]), 
+                float(properties["Width (m)"]), 
+                float(properties["Height (m)"])
+            ]),
+            position_m=np.array([
+                float(properties["Position X (m)"]),
+                float(properties["Position Y (m)"]),
+                float(properties["Position Z (m)"])
+            ]),
+            color=properties["Color"]
+        )
+
+        satellites = self.load_all()
+
+        for index, existing_satellite in enumerate(satellites):
+            if existing_satellite.name == original_name:
+                satellites[index] = satellite
+                break
+
+        self.save_all(satellites)
