@@ -72,9 +72,13 @@ SATELLITE_ORBIT_FACTOR = 1.15
 SATELLITE_DISPLAY_SIZE = 0.6
 
 # Time: how many simulated seconds pass per real animation second, and the
-# animation refresh rate.
-TIME_ACCELERATION = 30 * 86_400.0   # 30 days of sim time per real second
+# animation refresh rate. Default is gentle (1 sim-hour per real second) so
+# rotations are visible; the Visualization tab slider goes much faster for
+# watching orbital motion.
+TIME_ACCELERATION = 3_600.0          # 1 sim-hour per real second
 ANIMATION_FPS = 30
+TIME_ACCEL_MIN = 1.0                 # real-time
+TIME_ACCEL_MAX = 5_184_000.0         # 60 days per real second
 
 # Starfield
 STAR_COUNT = 450

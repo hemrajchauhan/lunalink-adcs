@@ -1,8 +1,12 @@
 """Wires the ADCS control tab to the simulation and the plot panel.
 
-When the user runs a simulation (or at startup), the controller computes the
-ADCS time series and pushes the result to every plot tab.
+When the user runs a simulation (or shortly after startup), the controller
+computes the ADCS time series on a background-friendly schedule and pushes the
+result to every plot tab. A wait cursor is shown during the (few-second) run.
 """
+from PyQt6.QtCore import QTimer, Qt
+from PyQt6.QtGui import QGuiApplication
+
 from ...simulation.adcs import simulate
 
 
@@ -11,11 +15,14 @@ class SimulationController:
     def __init__(self, adcs_tab, plot_panel):
         self.adcs_tab = adcs_tab
         self.plot_panel = plot_panel
-
         self.adcs_tab.parametersChanged.connect(self.run)
-        # Render an initial result with the default parameters.
-        self.run(self.adcs_tab.get_params())
+        # Defer the first run so the window paints immediately.
+        QTimer.singleShot(200, lambda: self.run(self.adcs_tab.get_params()))
 
     def run(self, params):
-        result = simulate(params)
-        self.plot_panel.update_results(result)
+        QGuiApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        try:
+            result = simulate(params)
+            self.plot_panel.update_results(result)
+        finally:
+            QGuiApplication.restoreOverrideCursor()

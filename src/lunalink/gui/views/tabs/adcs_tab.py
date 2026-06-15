@@ -34,9 +34,9 @@ class ADCSTab(QWidget):
 
         sc = QGroupBox("Spacecraft / initial state")
         sc_form = QFormLayout(sc)
-        self.ix = _spin(1, 100000, 180, step=10, suffix=" kg·m²")
-        self.iy = _spin(1, 100000, 200, step=10, suffix=" kg·m²")
-        self.iz = _spin(1, 100000, 150, step=10, suffix=" kg·m²")
+        self.ix = _spin(1, 100000, 135, step=10, suffix=" kg·m²")
+        self.iy = _spin(1, 100000, 208, step=10, suffix=" kg·m²")
+        self.iz = _spin(1, 100000, 260, step=10, suffix=" kg·m²")
         self.tumble = _spin(0, 60, 10, decimals=1, step=0.5, suffix=" °/s")
         sc_form.addRow("Inertia Ix", self.ix)
         sc_form.addRow("Inertia Iy", self.iy)
@@ -55,12 +55,15 @@ class ADCSTab(QWidget):
         scen = QGroupBox("Scenario")
         scen_form = QFormLayout(scen)
         self.mode = QComboBox()
-        self.mode.addItems(["Detumble → Sun-pointing"])
+        self.mode.addItems([
+            "Detumble (B-dot)",
+            "Sun-pointing (PD + wheels)",
+            "Full mission (detumble → pointing)",
+        ])
+        self._mode_keys = ["detumble", "sun_pointing", "full"]
         self.n_orbits = _spin(1, 20, 3, decimals=0, step=1, suffix=" orbits")
-        self.period = _spin(1, 48, 12, decimals=1, step=0.5, suffix=" h")
         scen_form.addRow("Mode", self.mode)
         scen_form.addRow("Simulated duration", self.n_orbits)
-        scen_form.addRow("Orbital period", self.period)
         layout.addWidget(scen)
 
         self.run_button = QPushButton("Run simulation")
@@ -76,10 +79,10 @@ class ADCSTab(QWidget):
         return ADCSParams(
             inertia=np.array([self.ix.value(), self.iy.value(), self.iz.value()]),
             initial_tumble_deg_s=self.tumble.value(),
-            magnetorquer_dipole_am2=self.dipole.value(),
+            magnetorquer_max_dipole_am2=self.dipole.value(),
             rw_max_momentum_nms=self.rw_max.value(),
             n_orbits=self.n_orbits.value(),
-            orbital_period_h=self.period.value(),
+            mode=self._mode_keys[self.mode.currentIndex()],
         )
 
     def _emit_params(self):

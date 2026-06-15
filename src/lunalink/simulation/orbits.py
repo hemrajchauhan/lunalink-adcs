@@ -69,6 +69,33 @@ def position_in_parent_frame(elements: OrbitElements, mu: float,
     return R @ r_peri
 
 
+def state_vectors_in_parent_frame(elements: OrbitElements, mu: float,
+                                  time_s: float) -> tuple[np.ndarray, np.ndarray]:
+    """Position AND velocity (m, m/s) relative to the parent at ``time_s``.
+
+    Uses the eccentric-anomaly form of the perifocal state, then rotates into
+    the parent inertial frame (3-1-3, framework Eq. 5-6). |v| satisfies
+    vis-viva, so it drives drag and the Sun/eclipse geometry consistently.
+    """
+    a = elements.semi_major_axis_m
+    e = elements.eccentricity
+
+    M = np.radians(elements.mean_anomaly_epoch_deg) + mean_motion(a, mu) * time_s
+    E = solve_kepler(M, e)
+
+    r_mag = a * (1 - e * np.cos(E))
+    r_peri = np.array([a * (np.cos(E) - e), a * np.sqrt(1 - e ** 2) * np.sin(E), 0.0])
+    v_coeff = np.sqrt(mu * a) / r_mag
+    v_peri = v_coeff * np.array([-np.sin(E), np.sqrt(1 - e ** 2) * np.cos(E), 0.0])
+
+    R = _rotation_matrix(
+        np.radians(elements.raan_deg),
+        np.radians(elements.inclination_deg),
+        np.radians(elements.arg_periapsis_deg),
+    )
+    return R @ r_peri, R @ v_peri
+
+
 def orbit_path_points(elements: OrbitElements, samples: int = 200) -> np.ndarray:
     """Return ``samples`` points (m, parent frame) tracing the full orbit.
 

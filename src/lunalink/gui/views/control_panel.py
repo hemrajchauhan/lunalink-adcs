@@ -24,7 +24,7 @@ class ControlPanel(QWidget):
         self.orbit_tab = OrbitTab()
         self.spacecraft_tab = SpacecraftTab()
         self.adcs_tab = ADCSTab()
-        self.visualization_tab = VisualizationTab()
+        self.visualization_tab = VisualizationTab(self.scene_manager)
         self.objects_tab = ObjectsTab(self.scene_manager)
 
     def _create_layout(self):
