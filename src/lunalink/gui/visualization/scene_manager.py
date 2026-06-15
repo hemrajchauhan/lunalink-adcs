@@ -30,6 +30,7 @@ class SceneManager:
         self.satellite_actors = {}
         self.orbit_actors = {}            # name -> (actor, parent_name)
         self.display_radius = {}
+        self.child_scale = {}             # name -> metres->units scale for moons/sats
         self.scene_positions = {}
         self._label_poly = None
         self._label_names = []
@@ -73,10 +74,13 @@ class SceneManager:
         self._configure_renderer()
         self._add_starfield()
         self.system.reload()
-        self._update_positions(self.sim_time_s)
 
+        # Display sizes and per-child orbit scales must exist before positions.
         for body in self.system.bodies:
             self.display_radius[body.name] = VisualizationTransform.body_display_radius(body.radius_m)
+        self._compute_child_scales()
+        self._update_positions(self.sim_time_s)
+
         for body in self.system.bodies:
             self.body_actors[body.name] = self._render_body(body)
         for satellite in self.system.satellites:
@@ -95,6 +99,7 @@ class SceneManager:
         self.satellite_actors.clear()
         self.orbit_actors.clear()
         self.display_radius.clear()
+        self.child_scale.clear()
         self.scene_positions.clear()
         self._label_poly = None
         self.setup_scene()
@@ -103,6 +108,18 @@ class SceneManager:
     # =====================================================================
     #  Positions (scene units)
     # =====================================================================
+    def _compute_child_scales(self):
+        """One metres->units scale per moon/satellite so each orbit sits at a
+        bounded, parent-relative distance (computed once at scene build)."""
+        self.child_scale = {}
+        for obj in self.system.all_objects():
+            if obj.orbit is None or obj.parent is None or obj.parent == "Sun":
+                continue
+            p_disp = self.display_radius.get(obj.parent, 2.0)
+            self.child_scale[obj.name] = VisualizationTransform.child_orbit_scale(
+                obj.orbit.semi_major_axis_m, obj.orbit.eccentricity,
+                p_disp, isinstance(obj, Satellite))
+
     def _update_positions(self, time_s):
         world = self.system.compute_positions(time_s)
         self.scene_positions = {}
@@ -122,12 +139,7 @@ class SceneManager:
         if obj.parent == "Sun":
             offset = VisualizationTransform.heliocentric_offset(offset_m)
         else:
-            p_radius = getattr(parent, "radius_m", 1.0)
-            p_disp = self.display_radius.get(obj.parent, 1.0)
-            if isinstance(obj, Satellite):
-                offset = VisualizationTransform.satellite_offset(offset_m, p_radius, p_disp)
-            else:
-                offset = VisualizationTransform.moon_offset(offset_m, p_radius, p_disp)
+            offset = offset_m * self.child_scale.get(obj.name, 0.0)
         pos = parent_scene + offset
         self.scene_positions[obj.name] = pos
         return pos
@@ -193,16 +205,10 @@ class SceneManager:
             local_path_m = self.system.orbit_path_world(obj, {obj.parent: np.zeros(3)})
             if local_path_m is None:
                 continue
-            parent = self.system.get_object(obj.parent)
             if obj.parent == "Sun":
                 pts = VisualizationTransform.heliocentric_offset(local_path_m)
             else:
-                p_radius = getattr(parent, "radius_m", 1.0)
-                p_disp = self.display_radius.get(obj.parent, 1.0)
-                if isinstance(obj, Satellite):
-                    pts = VisualizationTransform.satellite_offset(local_path_m, p_radius, p_disp)
-                else:
-                    pts = VisualizationTransform.moon_offset(local_path_m, p_radius, p_disp)
+                pts = local_path_m * self.child_scale.get(obj.name, 0.0)
             line = pv.lines_from_points(pts, close=True)
             color = "#46e0a0" if isinstance(obj, Satellite) else "#6688aa"
             actor = self.plotter.add_mesh(line, color=color, line_width=1.2,
@@ -321,17 +327,29 @@ class SceneManager:
         if point is None:
             return
         point = np.asarray(point)
-        nearest = min(self.scene_positions,
-                      key=lambda n: np.linalg.norm(self.scene_positions[n] - point))
-        state = self.get_object_state(nearest)
+        # Pick the object whose surface the click is closest to (distance to
+        # centre minus its display radius), so big distant bodies don't win.
+        def score(name):
+            d = np.linalg.norm(self.scene_positions[name] - point)
+            return d - self.display_radius.get(name, 0.6)
+        nearest = min(self.scene_positions, key=score)
+        self._show_inspect(nearest)
+
+    def _show_inspect(self, name):
+        state = self.get_object_state(name)
         if state is None:
             return
-        text = (f"{nearest}\n"
-                f"|r| from parent: {state['radius_km']:,.0f} km\n"
-                f"speed: {state['speed_kms']:.3f} km/s\n"
-                f"rotation period: {state['rotation_h']:.2f} h")
-        self.plotter.add_text(text, name="inspect", position="upper_left",
-                              font_size=10, color="white")
+        lines = [name]
+        if state["parent"]:
+            lines.append(f"Parent:           {state['parent']}")
+            lines.append(f"Distance from {state['parent']}: {state['radius_km']:,.0f} km")
+            lines.append(f"Orbital speed:    {state['speed_kms']:.3f} km/s")
+        else:
+            lines.append("Parent:           — (system centre)")
+        lines.append(f"Rotation period:  {state['rotation_h']:.2f} h")
+        # Replace any previous readout (same actor name) and force a redraw.
+        self.plotter.add_text("\n".join(lines), name="inspect",
+                              position="upper_left", font_size=10, color="white")
         self.plotter.render()
 
     def get_object_state(self, name: str) -> dict | None:

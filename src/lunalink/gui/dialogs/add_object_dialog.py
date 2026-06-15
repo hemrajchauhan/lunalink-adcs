@@ -31,13 +31,17 @@ def _spin(minimum, maximum, value, decimals=3, step=1.0, suffix=""):
 
 class AddObjectDialog(QDialog):
 
-    def __init__(self, parent_body_names, parent=None):
+    def __init__(self, parent_body_names, parent=None, initial_type=None):
         super().__init__(parent)
         self.setWindowTitle("Add Object")
         self.setMinimumWidth(380)
         self._color = "#cccccc"
         self._parent_body_names = parent_body_names
         self._build_ui()
+        if initial_type == "satellite":
+            self.type_combo.setCurrentIndex(1)
+        elif initial_type == "body":
+            self.type_combo.setCurrentIndex(0)
 
     # ------------------------------------------------------------------
     def _build_ui(self):

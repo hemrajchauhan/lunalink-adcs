@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import (
     QMenu, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
     QTreeWidget, QTreeWidgetItem, QFormLayout, QLineEdit, QMessageBox,
-    QColorDialog,
+    QColorDialog, QScrollArea, QSizePolicy,
 )
 from PyQt6.QtGui import QColor
 from PyQt6.QtCore import Qt
@@ -35,27 +35,30 @@ class ObjectsTab(QWidget):
         self.tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tree.customContextMenuRequested.connect(self._show_context_menu)
 
-        self.add_button = QPushButton("Add…")
-        self.add_button.clicked.connect(self._add_object)
-        self.remove_button = QPushButton("Remove")
-        self.remove_button.clicked.connect(self._remove_selected)
-
         self.save_button = QPushButton("Save changes")
         self.save_button.clicked.connect(self._save_object)
 
     def _create_layout(self):
         layout = QVBoxLayout()
-        layout.addWidget(QLabel("Objects"))
-        layout.addWidget(self.tree)
+        layout.addWidget(QLabel("Right-click for Add / Remove · double-click to focus"))
+        # The tree gets the lion's share of the space.
+        layout.addWidget(self.tree, stretch=3)
 
-        self.property_layout = QFormLayout()
-        layout.addLayout(self.property_layout)
+        # Compact, scrollable property editor so it never hides the tree.
+        self.editor_label = QLabel("Properties")
+        layout.addWidget(self.editor_label)
+
+        self.property_container = QWidget()
+        self.property_layout = QFormLayout(self.property_container)
+        self.property_layout.setContentsMargins(4, 4, 4, 4)
+
+        self.scroll = QScrollArea()
+        self.scroll.setWidgetResizable(True)
+        self.scroll.setWidget(self.property_container)
+        self.scroll.setMaximumHeight(220)
+        self.scroll.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+        layout.addWidget(self.scroll, stretch=1)
         layout.addWidget(self.save_button)
-
-        buttons = QHBoxLayout()
-        buttons.addWidget(self.add_button)
-        buttons.addWidget(self.remove_button)
-        layout.addLayout(buttons)
         self.setLayout(layout)
 
     # ------------------------------------------------------------------
@@ -63,16 +66,14 @@ class ObjectsTab(QWidget):
         self.tree.clear()
         bodies = BodyRepository().load_all()
         satellites = SatelliteRepository().load_all()
-
-        body_root = QTreeWidgetItem(["Celestial Bodies"])
-        satellite_root = QTreeWidgetItem(["Satellites"])
-        self.tree.addTopLevelItem(body_root)
-        self.tree.addTopLevelItem(satellite_root)
-
+        self.body_root = QTreeWidgetItem(["Celestial Bodies"])
+        self.satellite_root = QTreeWidgetItem(["Satellites"])
+        self.tree.addTopLevelItem(self.body_root)
+        self.tree.addTopLevelItem(self.satellite_root)
         for body in bodies:
-            body_root.addChild(QTreeWidgetItem([body.name]))
+            self.body_root.addChild(QTreeWidgetItem([body.name]))
         for satellite in satellites:
-            satellite_root.addChild(QTreeWidgetItem([satellite.name]))
+            self.satellite_root.addChild(QTreeWidgetItem([satellite.name]))
         self.tree.expandAll()
 
     # ------------------------------------------------------------------
@@ -80,10 +81,8 @@ class ObjectsTab(QWidget):
         object_name = item.text(0)
         if object_name in self.GROUP_LABELS:
             return
-
         body = BodyRepository().get_by_name(object_name)
         satellite = SatelliteRepository().get_by_name(object_name)
-
         if body is not None:
             self.current_object_type = "body"
             properties = BodyRepository().get_properties(object_name)
@@ -91,17 +90,16 @@ class ObjectsTab(QWidget):
             self.current_object_type = "satellite"
             properties = SatelliteRepository().get_properties(object_name)
         else:
-            return  # unknown item, nothing to edit
-
+            return
         self.current_object_name = object_name
         self.original_object_name = object_name
+        self.editor_label.setText(f"Properties — {object_name}")
         self._populate_property_editor(properties)
 
     def _populate_property_editor(self, properties):
         while self.property_layout.rowCount():
             self.property_layout.removeRow(0)
         self.property_fields.clear()
-
         for name, value in properties:
             field = QLineEdit(str(value))
             if name.lower() == "color":
@@ -115,6 +113,7 @@ class ObjectsTab(QWidget):
         row = QHBoxLayout(container)
         row.setContentsMargins(0, 0, 0, 0)
         pick = QPushButton("Pick…")
+        pick.setMaximumWidth(60)
 
         def choose():
             color = QColorDialog.getColor(QColor(field.text() or "#ffffff"), self)
@@ -131,7 +130,6 @@ class ObjectsTab(QWidget):
             QMessageBox.information(self, "No selection",
                                     "Select an object in the tree first.")
             return
-
         properties = {name: field.text() for name, field in self.property_fields.items()}
         try:
             if self.current_object_type == "body":
@@ -139,17 +137,15 @@ class ObjectsTab(QWidget):
             elif self.current_object_type == "satellite":
                 SatelliteRepository().save_properties(self.original_object_name, properties)
         except (ValueError, KeyError) as error:
-            QMessageBox.critical(self, "Invalid value",
-                                 f"Could not save changes:\n{error}")
+            QMessageBox.critical(self, "Invalid value", f"Could not save changes:\n{error}")
             return
-
         self.refresh()
         self.scene_manager.reload_scene()
 
     # ------------------------------------------------------------------
-    def _add_object(self):
+    def _add_object(self, initial_type=None):
         parent_names = [b.name for b in BodyRepository().load_all()]
-        dialog = AddObjectDialog(parent_names, self)
+        dialog = AddObjectDialog(parent_names, self, initial_type=initial_type)
         if dialog.exec():
             obj = dialog.build_object()
             try:
@@ -163,31 +159,19 @@ class ObjectsTab(QWidget):
             self.refresh()
             self.scene_manager.reload_scene()
 
-    def _remove_selected(self):
-        item = self.tree.currentItem()
-        if item is None or item.text(0) in self.GROUP_LABELS:
-            QMessageBox.information(self, "No selection",
-                                    "Select an object to remove.")
-            return
-        self._delete_object(item)
-
     def _delete_object(self, item):
         object_name = item.text(0)
-        confirm = QMessageBox.question(
-            self, "Delete object", f"Delete '{object_name}'?")
-        if confirm != QMessageBox.StandardButton.Yes:
+        if QMessageBox.question(self, "Delete object", f"Delete '{object_name}'?") \
+                != QMessageBox.StandardButton.Yes:
             return
-
         if BodyRepository().get_by_name(object_name):
             BodyRepository().delete_body(object_name)
         elif SatelliteRepository().get_by_name(object_name):
             SatelliteRepository().delete_satellite(object_name)
-
         self.scene_manager.reload_scene()
         self.refresh()
 
-    # ------------------------------------------------------------------
-    def _focus_object(self, item, column):
+    def _focus_object(self, item, column=0):
         object_name = item.text(0)
         if object_name in self.GROUP_LABELS:
             return
@@ -198,13 +182,23 @@ class ObjectsTab(QWidget):
 
     def _show_context_menu(self, position):
         item = self.tree.itemAt(position)
-        if item is None or item.text(0) in self.GROUP_LABELS:
-            return
         menu = QMenu()
-        focus_action = menu.addAction("Focus")
-        delete_action = menu.addAction("Delete")
-        selected = menu.exec(self.tree.viewport().mapToGlobal(position))
-        if selected == focus_action:
-            self._focus_object(item, 0)
-        elif selected == delete_action:
-            self._delete_object(item)
+        label = item.text(0) if item is not None else None
+
+        if label == "Satellites":
+            menu.addAction("Add Satellite…", lambda: self._add_object("satellite"))
+        elif label == "Celestial Bodies":
+            menu.addAction("Add Celestial Body…", lambda: self._add_object("body"))
+        elif item is None:
+            menu.addAction("Add Celestial Body…", lambda: self._add_object("body"))
+            menu.addAction("Add Satellite…", lambda: self._add_object("satellite"))
+        else:
+            # An actual object: focus / add / remove.
+            menu.addAction("Focus", lambda: self._focus_object(item))
+            menu.addSeparator()
+            menu.addAction("Add Celestial Body…", lambda: self._add_object("body"))
+            menu.addAction("Add Satellite…", lambda: self._add_object("satellite"))
+            menu.addSeparator()
+            menu.addAction("Remove", lambda: self._delete_object(item))
+
+        menu.exec(self.tree.viewport().mapToGlobal(position))

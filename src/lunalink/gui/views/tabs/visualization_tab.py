@@ -42,19 +42,22 @@ class VisualizationTab(QWidget):
         self.realtime_check = QCheckBox("Real-time (1×)")
         self.realtime_check.toggled.connect(self._on_realtime)
 
+        self.epoch_button = QPushButton("Jump to today's date  ⏱")
+        self.epoch_button.setToolTip(
+            "Place the planets at their positions for the current date and pause.")
+        self.epoch_button.clicked.connect(self._go_to_today)
+
         form.addRow(self.play_button)
         form.addRow("Speed", self.speed_slider)
         form.addRow("", self.speed_label)
         form.addRow("", self.realtime_check)
+        form.addRow("Date", self.epoch_button)
         layout.addWidget(playback)
 
         inspect = QGroupBox("Inspect")
         ilayout = QVBoxLayout(inspect)
-        ilayout.addWidget(QLabel("Click a body in the 3D view to read its\n"
-                                 "position, speed and rotation period."))
-        self.epoch_button = QPushButton("Pause & go to today (approx.)")
-        self.epoch_button.clicked.connect(self._go_to_today)
-        ilayout.addWidget(self.epoch_button)
+        ilayout.addWidget(QLabel("Click any body in the 3D view to read its\n"
+                                 "parent, distance, orbital speed and rotation period."))
         layout.addWidget(inspect)
 
         view = QGroupBox("Scene")

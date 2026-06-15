@@ -48,24 +48,25 @@ PLOT_PANEL_HEIGHT = MAIN_WINDOW_HEIGHT - CONTROL_PANEL_HEIGHT
 #  independent, tunable mappings.
 
 # Planet orbital radius (around the Sun): 1 AU -> this many scene units.
-AU_TO_UNITS = 80.0
+# Larger value spreads the planets out (linear, so proportions stay real).
+AU_TO_UNITS = 120.0
 
 # Body display radius = BODY_SIZE_COEFF * radius_m ** BODY_SIZE_POWER,
 # then clamped. A sub-linear power keeps the Sun from swallowing the planets
 # while still preserving size ordering.
 BODY_SIZE_POWER = 0.40
-BODY_SIZE_COEFF = 0.0115
+BODY_SIZE_COEFF = 0.010
 BODY_DISPLAY_RADIUS_MIN = 1.5
-BODY_DISPLAY_RADIUS_MAX = 18.0
+BODY_DISPLAY_RADIUS_MAX = 14.0
 
-# Moons orbit their PARENT, scaled relative to the parent's display radius.
-# Real orbit-radius/parent-radius ratios are huge, so they are compressed to
-# keep moons near their parent in the solar-system overview.
-CHILD_ORBIT_COMPRESSION = 0.12
+# Moons: semi-major axis is drawn at this multiple of the parent's display
+# radius (small + bounded, so a moon clearly orbits its parent and never reaches
+# a neighbouring planet).
+MOON_SEMI_MAJOR_FACTOR = 2.5
 
-# Satellites are drawn at (near) true scale relative to their parent so the
-# orbit shape (e.g. the Molniya ellipse) is physically meaningful when zoomed in.
-SATELLITE_ORBIT_FACTOR = 1.15
+# Satellites: perigee is drawn at this multiple of the parent's display radius
+# (just clear of the surface); the eccentric orbit shape is preserved.
+SATELLITE_PERIGEE_FACTOR = 1.25
 
 # Satellites are physically metres-sized next to a planet; draw them as a small
 # fixed-size marker so they remain visible.

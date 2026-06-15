@@ -2,15 +2,16 @@
 
 The mapping is deliberately NOT to scale - real astronomical ratios cannot be
 visualised - so distances and body sizes use independent, tunable rules defined
-in ``config``. Distances around the Sun are linear in AU; body radii use a
-sub-linear power law; moons/satellites are placed relative to their parent.
+in ``config``. Planet orbits are linear in AU; body radii use a sub-linear power
+law; moons/satellites get a per-object scale so each orbit sits at a controlled,
+bounded distance from its parent (and never reaches a neighbouring planet).
 """
 import numpy as np
 
 from ...config import (
     AU_M, AU_TO_UNITS, BODY_SIZE_POWER, BODY_SIZE_COEFF,
     BODY_DISPLAY_RADIUS_MIN, BODY_DISPLAY_RADIUS_MAX,
-    CHILD_ORBIT_COMPRESSION, SATELLITE_ORBIT_FACTOR,
+    MOON_SEMI_MAJOR_FACTOR, SATELLITE_PERIGEE_FACTOR,
 )
 
 # metres -> scene units for heliocentric distances
@@ -31,21 +32,19 @@ class VisualizationTransform:
         return float(np.clip(r, BODY_DISPLAY_RADIUS_MIN, BODY_DISPLAY_RADIUS_MAX))
 
     @staticmethod
-    def child_offset(offset_m: np.ndarray, parent_radius_m: float,
-                     parent_display_radius: float, compression: float) -> np.ndarray:
-        """Scale a parent-relative offset (m) to scene units, expressed as a
-        multiple of the parent's *display* radius."""
-        offset_m = np.asarray(offset_m, dtype=float)
-        if parent_radius_m <= 0:
-            return offset_m * 0.0
-        return offset_m / parent_radius_m * parent_display_radius * compression
+    def child_orbit_scale(semi_major_axis_m: float, eccentricity: float,
+                          parent_display_radius: float, is_satellite: bool) -> float:
+        """metres -> scene-units scale for a moon/satellite orbit.
 
-    @staticmethod
-    def moon_offset(offset_m, parent_radius_m, parent_display_radius):
-        return VisualizationTransform.child_offset(
-            offset_m, parent_radius_m, parent_display_radius, CHILD_ORBIT_COMPRESSION)
-
-    @staticmethod
-    def satellite_offset(offset_m, parent_radius_m, parent_display_radius):
-        return VisualizationTransform.child_offset(
-            offset_m, parent_radius_m, parent_display_radius, SATELLITE_ORBIT_FACTOR)
+        Moons: the semi-major axis is placed at ``MOON_SEMI_MAJOR_FACTOR`` times
+        the parent's display radius. Satellites: the *perigee* is placed just
+        outside the parent (``SATELLITE_PERIGEE_FACTOR`` x display radius) so the
+        body stays clear of the surface while the orbit's eccentric shape is
+        preserved. Either way the child stays local to its parent.
+        """
+        if semi_major_axis_m <= 0:
+            return 0.0
+        if is_satellite:
+            perigee = semi_major_axis_m * (1.0 - eccentricity)
+            return parent_display_radius * SATELLITE_PERIGEE_FACTOR / max(perigee, 1.0)
+        return parent_display_radius * MOON_SEMI_MAJOR_FACTOR / semi_major_axis_m

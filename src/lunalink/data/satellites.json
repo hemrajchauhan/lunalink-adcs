@@ -3,7 +3,11 @@
         "name": "LunaLink",
         "color": "#f2f2f2",
         "mass_kg": 500.0,
-        "dimensions_m": [ 2.0, 1.5, 1.0 ],
+        "dimensions_m": [
+            2.0,
+            1.5,
+            1.0
+        ],
         "parent": "Earth",
         "orbit": {
             "semi_major_axis_m": 24628137.0,
@@ -11,6 +15,25 @@
             "inclination_deg": 63.4,
             "raan_deg": 0.0,
             "arg_periapsis_deg": 270.0,
+            "mean_anomaly_epoch_deg": 0.0
+        }
+    },
+    {
+        "name": "Test",
+        "color": "#00aaff",
+        "mass_kg": 500.0,
+        "dimensions_m": [
+            2.0,
+            1.5,
+            1.0
+        ],
+        "parent": "Earth",
+        "orbit": {
+            "semi_major_axis_m": 7378137.0,
+            "eccentricity": 0.05,
+            "inclination_deg": 10.0,
+            "raan_deg": 0.0,
+            "arg_periapsis_deg": 0.0,
             "mean_anomaly_epoch_deg": 0.0
         }
     }
