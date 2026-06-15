@@ -92,6 +92,7 @@ class SceneManager:
         self.focus_on_body("Earth")
 
     def reload_scene(self):
+        was_running = self._timer.isActive()
         self._timer.stop()
         self.plotter.clear()
         self.plotter.remove_all_lights()
@@ -104,6 +105,8 @@ class SceneManager:
         self._label_poly = None
         self.setup_scene()
         self.plotter.render()
+        if was_running:                 # keep animating after an edit/delete
+            self.start_animation()
 
     # =====================================================================
     #  Positions (scene units)
@@ -312,28 +315,55 @@ class SceneManager:
     #  Inspection (click a body to read its state)
     # =====================================================================
     def _enable_picking(self):
+        # use_picker=True makes PyVista pass the VTK picker to the callback, so
+        # we can read the EXACT actor under the cursor (not a nearest guess).
         try:
             self.plotter.enable_point_picking(
                 callback=self._on_pick, show_message=False,
-                use_picker=True, left_clicking=True)
+                use_picker=True, left_clicking=True, picker="cell")
         except (TypeError, AttributeError):
             try:
-                self.plotter.enable_point_picking(callback=self._on_pick,
-                                                  show_message=False)
+                self.plotter.enable_point_picking(
+                    callback=self._on_pick, show_message=False, use_picker=True)
             except Exception:
-                pass
+                try:
+                    self.plotter.enable_point_picking(callback=self._on_pick,
+                                                      show_message=False)
+                except Exception:
+                    pass
 
-    def _on_pick(self, point, *args):
-        if point is None:
-            return
-        point = np.asarray(point)
-        # Pick the object whose surface the click is closest to (distance to
-        # centre minus its display radius), so big distant bodies don't win.
-        def score(name):
-            d = np.linalg.norm(self.scene_positions[name] - point)
-            return d - self.display_radius.get(name, 0.6)
-        nearest = min(self.scene_positions, key=score)
-        self._show_inspect(nearest)
+    def _actor_to_name(self, actor):
+        if actor is None:
+            return None
+        for name, candidate in self.plotter.actors.items():
+            if candidate is actor:
+                return name
+        return None
+
+    def _on_pick(self, *args):
+        """Resolve the clicked object from the picker's actor when available,
+        falling back to the nearest body surface otherwise."""
+        picker = next((a for a in args if hasattr(a, "GetActor")), None)
+        point = next((a for a in args
+                      if a is not None and np.ndim(a) == 1 and np.size(a) == 3), None)
+
+        name = None
+        if picker is not None:
+            try:
+                name = self._actor_to_name(picker.GetActor())
+            except Exception:
+                name = None
+
+        if name not in self.scene_positions and point is not None:
+            point = np.asarray(point)
+
+            def score(n):
+                return np.linalg.norm(self.scene_positions[n] - point) \
+                    - self.display_radius.get(n, 0.6)
+            name = min(self.scene_positions, key=score)
+
+        if name in self.scene_positions:
+            self._show_inspect(name)
 
     def _show_inspect(self, name):
         state = self.get_object_state(name)
@@ -341,11 +371,8 @@ class SceneManager:
             return
         lines = [name]
         if state["parent"]:
-            lines.append(f"Parent:           {state['parent']}")
-            lines.append(f"Distance from {state['parent']}: {state['radius_km']:,.0f} km")
-            lines.append(f"Orbital speed:    {state['speed_kms']:.3f} km/s")
-        else:
-            lines.append("Parent:           — (system centre)")
+            lines.append(f"Distance from {state['parent']}:  {state['radius_km']:,.0f} km")
+            lines.append(f"Orbital speed:  {state['speed_kms']:.3f} km/s")
         lines.append(f"Rotation period:  {state['rotation_h']:.2f} h")
         # Replace any previous readout (same actor name) and force a redraw.
         self.plotter.add_text("\n".join(lines), name="inspect",

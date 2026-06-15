@@ -140,7 +140,7 @@ class ObjectsTab(QWidget):
             QMessageBox.critical(self, "Invalid value", f"Could not save changes:\n{error}")
             return
         self.refresh()
-        self.scene_manager.reload_scene()
+        self._reload_scene_safe()
 
     # ------------------------------------------------------------------
     def _add_object(self, initial_type=None):
@@ -157,7 +157,7 @@ class ObjectsTab(QWidget):
                 QMessageBox.critical(self, "Could not add object", str(error))
                 return
             self.refresh()
-            self.scene_manager.reload_scene()
+            self._reload_scene_safe()
 
     def _delete_object(self, item):
         object_name = item.text(0)
@@ -168,8 +168,27 @@ class ObjectsTab(QWidget):
             BodyRepository().delete_body(object_name)
         elif SatelliteRepository().get_by_name(object_name):
             SatelliteRepository().delete_satellite(object_name)
-        self.scene_manager.reload_scene()
+
+        # Clear the editor if the deleted object was being shown.
+        if self.current_object_name == object_name:
+            self.current_object_name = None
+            self.original_object_name = None
+            self.current_object_type = None
+            self.editor_label.setText("Properties")
+            self._populate_property_editor([])
+
+        # Rebuild the tree first (so it always reflects the deletion), then
+        # refresh the 3D scene (guarded so a scene hiccup can't leave the
+        # tree stale).
         self.refresh()
+        self._reload_scene_safe()
+
+    def _reload_scene_safe(self):
+        try:
+            self.scene_manager.reload_scene()
+        except Exception as error:
+            QMessageBox.warning(self, "Scene refresh",
+                                f"Saved; the 3D view could not refresh:\n{error}")
 
     def _focus_object(self, item, column=0):
         object_name = item.text(0)
