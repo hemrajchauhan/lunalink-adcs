@@ -4,9 +4,10 @@ from PyQt6.QtCore import QTimer
 
 from ...simulation.system import SolarSystem
 from ...simulation.objects import Satellite
-from ...simulation import orbits
+from ...simulation.physics import orbit
 from .transforms import VisualizationTransform
 from .camera_manager import CameraManager
+from ... import config
 from ...config import (
     ANIMATION_FPS, TIME_ACCELERATION, SATELLITE_DISPLAY_SIZE,
     STAR_COUNT, STAR_FIELD_RADIUS,
@@ -44,19 +45,22 @@ class SceneManager:
     #  Construction
     # =====================================================================
     def _configure_renderer(self):
-        self.plotter.set_background("#0a0e1a")
+        self.plotter.set_background(config.SCENE_BACKGROUND)
         self.plotter.enable_anti_aliasing()
         self.plotter.remove_all_lights()
-        sun_light = pv.Light(position=(0, 0, 0), color="white", intensity=1.4)
+        sun_light = pv.Light(position=(0, 0, 0), color="white",
+                             intensity=config.SUN_LIGHT_INTENSITY)
         sun_light.positional = True
         sun_light.attenuation_values = (1.0, 0.0, 0.0)
         self.plotter.add_light(sun_light)
-        self.plotter.add_light(pv.Light(light_type="headlight", intensity=0.18))
+        self.plotter.add_light(pv.Light(light_type="headlight",
+                                        intensity=config.FILL_LIGHT_INTENSITY))
         # Orientation axes with bright, readable labels (dark background fix).
+        x_c, y_c, z_c = config.AXIS_COLORS
         try:
             self.plotter.add_axes(
                 xlabel="X", ylabel="Y", zlabel="Z",
-                x_color="#ff6b6b", y_color="#5cd65c", z_color="#5b9bff",
+                x_color=x_c, y_color=y_c, z_color=z_c,
                 line_width=3, labels_off=False)
         except TypeError:
             self.plotter.add_axes()
@@ -66,7 +70,8 @@ class SceneManager:
         directions = rng.normal(size=(STAR_COUNT, 3))
         directions /= np.linalg.norm(directions, axis=1, keepdims=True)
         cloud = pv.PolyData(directions * STAR_FIELD_RADIUS)
-        self.plotter.add_mesh(cloud, color="white", point_size=1.5,
+        self.plotter.add_mesh(cloud, color=config.STAR_COLOR,
+                              point_size=config.STAR_POINT_SIZE,
                               render_points_as_spheres=True, lighting=False,
                               name="starfield", pickable=False)
 
@@ -150,7 +155,7 @@ class SceneManager:
     # =====================================================================
     #  Rendering
     # =====================================================================
-    def _safe_color(self, color, fallback="#999999"):
+    def _safe_color(self, color, fallback=config.BODY_FALLBACK_COLOR):
         try:
             pv.Color(color)
             return color
@@ -160,7 +165,8 @@ class SceneManager:
     def _render_body(self, body):
         radius = self.display_radius[body.name]
         mesh = pv.Sphere(radius=radius, center=(0, 0, 0),
-                         theta_resolution=48, phi_resolution=48)
+                         theta_resolution=config.SPHERE_RESOLUTION,
+                         phi_resolution=config.SPHERE_RESOLUTION)
         is_sun = body.parent is None
         actor = self.plotter.add_mesh(
             mesh, color=self._safe_color(body.color), name=body.name,
@@ -171,7 +177,7 @@ class SceneManager:
         self._apply_spin(actor, body, self.sim_time_s)
         if is_sun:
             glow = pv.Sphere(radius=radius * 1.25, center=(0, 0, 0))
-            g = self.plotter.add_mesh(glow, color="#ffe08a", opacity=0.18,
+            g = self.plotter.add_mesh(glow, color=config.SUN_GLOW_COLOR, opacity=0.18,
                                       lighting=False, name=f"{body.name}_glow",
                                       pickable=False)
             g.position = tuple(self.scene_positions[body.name])
@@ -182,7 +188,7 @@ class SceneManager:
     def _render_ring(self, body, radius):
         ring = pv.Disc(center=(0, 0, 0), inner=radius * 1.4,
                        outer=radius * 2.3, normal=(0, 0, 1), c_res=64)
-        actor = self.plotter.add_mesh(ring, color="#cbb98f", opacity=0.6,
+        actor = self.plotter.add_mesh(ring, color=config.SATURN_RING_COLOR, opacity=0.6,
                                       lighting=False, name=f"{body.name}_ring",
                                       pickable=False)
         actor.position = tuple(self.scene_positions[body.name])
@@ -197,7 +203,7 @@ class SceneManager:
         actor = self.plotter.add_mesh(
             cube, color=self._safe_color(satellite.color), name=satellite.name,
             smooth_shading=False, specular=0.4, show_edges=True,
-            edge_color="#333333")
+            edge_color=config.SATELLITE_EDGE_COLOR)
         actor.position = tuple(self.scene_positions[satellite.name])
         return actor
 
@@ -213,7 +219,8 @@ class SceneManager:
             else:
                 pts = local_path_m * self.child_scale.get(obj.name, 0.0)
             line = pv.lines_from_points(pts, close=True)
-            color = "#46e0a0" if isinstance(obj, Satellite) else "#6688aa"
+            color = config.ORBIT_COLOR_SATELLITE if isinstance(obj, Satellite) \
+                else config.ORBIT_COLOR_BODY
             actor = self.plotter.add_mesh(line, color=color, line_width=1.2,
                                           opacity=0.55, lighting=False,
                                           name=f"{obj.name}_orbit", pickable=False)
@@ -232,9 +239,9 @@ class SceneManager:
         # is not reliable). 11 labels at the animation rate is cheap.
         points = np.array([self.scene_positions[n] for n in self._label_names])
         self.plotter.add_point_labels(
-            points, self._label_names, font_size=11, text_color="white",
-            point_size=0, shape=None, always_visible=True,
-            name="object_labels", pickable=False, render=False)
+            points, self._label_names, font_size=config.LABEL_FONT_SIZE,
+            text_color=config.LABEL_COLOR, point_size=0, shape=None,
+            always_visible=True, name="object_labels", pickable=False, render=False)
 
     def _apply_spin(self, actor, body, time_s):
         period_s = body.rotation_period_h * 3600.0
@@ -376,7 +383,8 @@ class SceneManager:
         lines.append(f"Rotation period:  {state['rotation_h']:.2f} h")
         # Replace any previous readout (same actor name) and force a redraw.
         self.plotter.add_text("\n".join(lines), name="inspect",
-                              position="upper_left", font_size=10, color="white")
+                              position="upper_left", font_size=config.INSPECT_FONT_SIZE,
+                              color=config.INSPECT_TEXT_COLOR)
         self.plotter.render()
 
     def get_object_state(self, name: str) -> dict | None:
@@ -387,7 +395,7 @@ class SceneManager:
         radius = 0.0
         if obj.orbit is not None and obj.parent is not None:
             mu = self.system.mu_for(obj.parent)
-            r, v = orbits.state_vectors_in_parent_frame(obj.orbit, mu, self.sim_time_s)
+            r, v = orbit.state_vectors_in_parent_frame(obj.orbit, mu, self.sim_time_s)
             speed = np.linalg.norm(v) / 1000.0
             radius = np.linalg.norm(r) / 1000.0
         rotation = getattr(obj, "rotation_period_h", 0.0)

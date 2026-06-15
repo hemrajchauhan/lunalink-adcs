@@ -65,3 +65,24 @@ TIME_ACCEL_MAX = 5_184_000.0         # 60 days per real second
 # Starfield
 STAR_COUNT = 450
 STAR_FIELD_RADIUS = 6_000.0
+STAR_COLOR = "white"
+STAR_POINT_SIZE = 1.5
+
+# -----------------------------------------------------------------------------
+#  Scene appearance (colours / sizes for the 3D view)
+# -----------------------------------------------------------------------------
+SCENE_BACKGROUND = "#0a0e1a"
+SUN_LIGHT_INTENSITY = 1.4
+FILL_LIGHT_INTENSITY = 0.18
+AXIS_COLORS = ("#ff6b6b", "#5cd65c", "#5b9bff")   # X, Y, Z
+SPHERE_RESOLUTION = 48
+BODY_FALLBACK_COLOR = "#999999"
+SUN_GLOW_COLOR = "#ffe08a"
+SATURN_RING_COLOR = "#cbb98f"
+ORBIT_COLOR_BODY = "#6688aa"
+ORBIT_COLOR_SATELLITE = "#46e0a0"
+SATELLITE_EDGE_COLOR = "#333333"
+LABEL_COLOR = "white"
+LABEL_FONT_SIZE = 11
+INSPECT_TEXT_COLOR = "white"
+INSPECT_FONT_SIZE = 10

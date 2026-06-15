@@ -7,7 +7,7 @@ result to every plot tab. A wait cursor is shown during the (few-second) run.
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QGuiApplication
 
-from ...simulation.adcs import simulate
+from ...simulation.simulator import simulate
 
 
 class SimulationController:

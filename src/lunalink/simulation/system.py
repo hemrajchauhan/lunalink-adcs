@@ -7,26 +7,11 @@ hierarchically (Sun -> planet -> moon/satellite).
 """
 import numpy as np
 
-from . import orbits
+from .physics import orbit
+from .physics.constants import GM_SUN, GM_EARTH, GM_BODIES
 from .objects import SpaceObject
 from .repositories.body_repository import BodyRepository
 from .repositories.satellite_repository import SatelliteRepository
-from ..config import GM_SUN, GM_EARTH
-
-# Standard gravitational parameters (m^3/s^2). Used so children orbit their
-# parent at a physically sensible rate. Unknown parents fall back to GM_EARTH.
-GM_TABLE = {
-    "Sun": GM_SUN,
-    "Mercury": 2.2032e13,
-    "Venus": 3.24859e14,
-    "Earth": GM_EARTH,
-    "Moon": 4.9048695e12,
-    "Mars": 4.282837e13,
-    "Jupiter": 1.26686534e17,
-    "Saturn": 3.7931187e16,
-    "Uranus": 5.793939e15,
-    "Neptune": 6.836529e15,
-}
 
 
 class SolarSystem:
@@ -53,7 +38,7 @@ class SolarSystem:
     def mu_for(self, parent_name: str | None) -> float:
         if parent_name is None:
             return GM_SUN
-        return GM_TABLE.get(parent_name, GM_EARTH)
+        return GM_BODIES.get(parent_name, GM_EARTH)
 
     # -- propagation ------------------------------------------------------
     def compute_positions(self, time_s: float) -> dict[str, np.ndarray]:
@@ -81,7 +66,7 @@ class SolarSystem:
                           if parent_obj is not None else np.zeros(3))
             positions[obj.parent] = parent_pos
 
-        local = orbits.position_in_parent_frame(
+        local = orbit.position_in_parent_frame(
             obj.orbit, self.mu_for(obj.parent), time_s)
         return parent_pos + local
 
@@ -93,5 +78,5 @@ class SolarSystem:
         if obj.orbit is None or obj.parent is None:
             return None
         parent_pos = positions.get(obj.parent, np.zeros(3))
-        local_path = orbits.orbit_path_points(obj.orbit, samples)
+        local_path = orbit.orbit_path_points(obj.orbit, samples)
         return local_path + parent_pos

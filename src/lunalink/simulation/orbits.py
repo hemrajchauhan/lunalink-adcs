@@ -1,8 +1,7 @@
-"""Backward-compatibility shim.
+"""DEPRECATED - safe to delete (nothing imports this any more).
 
 The orbit mechanics now live in :mod:`lunalink.simulation.physics.orbit`
-(split into kepler / propagation / builders). This module just re-exports them
-so existing ``simulation.orbits`` imports keep working.
+(split into kepler / propagation / builders); kept only as a thin re-export.
 """
 from .physics.orbit import (  # noqa: F401
     solve_kepler, mean_motion, orbital_period_s,

@@ -13,7 +13,8 @@ import matplotlib
 matplotlib.use("Agg")  # headless backend
 import matplotlib.pyplot as plt
 
-from .simulation.adcs import simulate, ADCSParams, default_params
+from .simulation.parameters import ADCSParams, default_params
+from .simulation.simulator import simulate
 
 
 def run(output_dir: str = "output", params: ADCSParams = None) -> dict:

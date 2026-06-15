@@ -9,6 +9,21 @@ simulation parameters live in the JSON data files instead.
 GM_SUN = 1.327_124_400_18e20
 GM_EARTH = 3.986_004_418e14
 
+# Standard gravitational parameters of the major bodies, so a child orbits its
+# parent at a physically sensible rate. Unknown parents fall back to GM_EARTH.
+GM_BODIES = {
+    "Sun": GM_SUN,
+    "Mercury": 2.2032e13,
+    "Venus": 3.24859e14,
+    "Earth": GM_EARTH,
+    "Moon": 4.9048695e12,
+    "Mars": 4.282837e13,
+    "Jupiter": 1.26686534e17,
+    "Saturn": 3.7931187e16,
+    "Uranus": 5.793939e15,
+    "Neptune": 6.836529e15,
+}
+
 # Lengths
 AU_M = 1.495_978_707e11          # astronomical unit (m)
 R_EARTH_M = 6.378e6              # mean equatorial Earth radius (m)

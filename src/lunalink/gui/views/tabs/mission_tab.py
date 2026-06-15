@@ -4,9 +4,10 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import pyqtSignal
 
-from ....simulation import orbits
+from ....simulation.physics import orbit
 from ....simulation.physics.constants import GM_EARTH, R_EARTH_M
-from ....simulation.adcs import sizing_summary, ADCSParams
+from ....simulation.parameters import ADCSParams
+from ....simulation.simulator import sizing_summary
 from ....simulation.defaults import load_mission_profile
 from ....simulation.repositories.satellite_repository import SatelliteRepository
 from ....simulation.repositories.mission_repository import MissionRepository
@@ -125,7 +126,7 @@ class MissionTab(QWidget):
 
         o = sat.orbit
         a, e = o.semi_major_axis_m, o.eccentricity
-        P = orbits.orbital_period_s(a, GM_EARTH)
+        P = orbit.orbital_period_s(a, GM_EARTH)
         self.parent_label.setText(sat.parent or "—")
         self._orbit_labels["Semi-major axis"].setText(f"{a/1000:,.0f} km")
         self._orbit_labels["Eccentricity"].setText(f"{e:.4f}")

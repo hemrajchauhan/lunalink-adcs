@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import pyqtSignal
 
-from ....simulation.adcs import ADCSParams
+from ....simulation.parameters import ADCSParams
 from ....simulation.physics.dynamics import box_inertia
 from ....simulation.repositories.satellite_repository import SatelliteRepository
 from ....simulation.repositories.mission_repository import MissionRepository

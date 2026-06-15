@@ -6,7 +6,7 @@ class BasePlotTab(QWidget):
     """A pyqtgraph plot with a title, axis labels and a legend.
 
     Subclasses implement :meth:`update_plot(result)` where ``result`` is the
-    dict returned by :func:`lunalink.simulation.adcs.simulate`.
+    dict returned by :func:`lunalink.simulation.simulator.simulate`.
     """
 
     TITLE = "Plot"
