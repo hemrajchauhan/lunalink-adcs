@@ -66,3 +66,24 @@ class Satellite(SpaceObject):
     mass_kg: float = 1.0
     # (length, width, height) of the spacecraft box
     dimensions_m: np.ndarray = field(default_factory=lambda: np.array([1.0, 1.0, 1.0]))
+
+
+@dataclass
+class Mission:
+    """A runnable ADCS scenario: a satellite plus a set of simulation
+    parameters (mode, actuators, duration ...). Persisted in missions.json."""
+    name: str
+    satellite: str
+    description: str = ""
+    simulation: dict = field(default_factory=dict)
+
+    def to_dict(self) -> dict:
+        return {"name": self.name, "satellite": self.satellite,
+                "description": self.description, "simulation": dict(self.simulation)}
+
+    @staticmethod
+    def from_dict(data: dict) -> "Mission":
+        return Mission(
+            name=data["name"], satellite=data["satellite"],
+            description=data.get("description", ""),
+            simulation=dict(data.get("simulation", {})))

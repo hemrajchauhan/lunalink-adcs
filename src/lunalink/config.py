@@ -1,34 +1,15 @@
 # =============================================================================
-#  LunaLink ADCS Simulator - Configuration
+#  LunaLink ADCS Simulator - Configuration (GUI / visualization only)
 # =============================================================================
-#  Mission parameters are FIXED by the Project X brief (TUM SS2026).
-#  Everything below the "VISUALIZATION" block is display-only and may be tuned
-#  live from the Visualization tab without affecting the physics.
+#  Mission, orbit, spacecraft and simulation PARAMETERS are NOT here - they live
+#  in the JSON data files (bodies.json, satellites.json, missions.json,
+#  simulation_defaults.json, mission_profile.json). This module only holds GUI
+#  window sizes and display-scaling constants.
 # =============================================================================
 
-# -----------------------------------------------------------------------------
-#  Mission parameters (fixed by the brief)
-# -----------------------------------------------------------------------------
-ORBIT_TYPE = "HEO — Molniya-type (500 × 36,000 km)"
-INCLINATION = 63.4              # degrees
-ORBITAL_PERIOD = 12             # hours
-POWER_BUDGET_EOL = 1.2          # kW
-DESIGN_LIFETIME = 5             # years
-EARTH_DOWNLINK = "X-band · ≥ 100 Mbps"
-MOON_UPLINK = "UHF · 400–512 MHz"
-GROUND_STATION = "Ottobrunn, Germany (48.07° N, 11.65° E)"
-MIN_ELEVATION = 5               # degrees
-
-# Molniya geometry derived from the brief (perigee/apogee altitudes)
-HEO_PERIGEE_ALTITUDE_M = 500_000.0       # 500 km
-HEO_APOGEE_ALTITUDE_M = 36_000_000.0     # 36 000 km
-
-# -----------------------------------------------------------------------------
-#  Physical constants (SI, used by the orbital propagator)
-# -----------------------------------------------------------------------------
-GM_SUN = 1.327_124_400_18e20    # m^3 / s^2
-GM_EARTH = 3.986_004_418e14     # m^3 / s^2
-AU_M = 1.495_978_707e11         # m (astronomical unit)
+# Physical constants are re-exported from the single source of truth so legacy
+# imports (e.g. ``from ..config import GM_EARTH``) keep working.
+from .simulation.physics.constants import GM_SUN, GM_EARTH, AU_M  # noqa: F401
 
 # -----------------------------------------------------------------------------
 #  GUI window parameters

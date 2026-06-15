@@ -32,10 +32,10 @@ class ControlPanel(QWidget):
         self.setLayout(layout)
 
     def _connect(self):
-        # "Run" on the Mission tab drives the ADCS simulation for that satellite.
-        self.mission_tab.simulateRequested.connect(self._run_for_satellite)
+        # "Run" on the Mission tab drives the ADCS simulation for that mission.
+        self.mission_tab.simulateRequested.connect(self._run_for_mission)
 
-    def _run_for_satellite(self, name):
-        self.adcs_tab.select_satellite(name)
+    def _run_for_mission(self, name):
+        self.adcs_tab.select_mission(name)
         self.adcs_tab.run_now()
         self.tab_widget.setCurrentWidget(self.adcs_tab)

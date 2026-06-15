@@ -42,7 +42,7 @@ class VisualizationTab(QWidget):
         self.realtime_check = QCheckBox("Real-time (1×)")
         self.realtime_check.toggled.connect(self._on_realtime)
 
-        self.epoch_button = QPushButton("Jump to today's date  ⏱")
+        self.epoch_button = QPushButton("Reset to present day")
         self.epoch_button.setToolTip(
             "Place the planets at their positions for the current date and pause.")
         self.epoch_button.clicked.connect(self._go_to_today)
@@ -51,7 +51,7 @@ class VisualizationTab(QWidget):
         form.addRow("Speed", self.speed_slider)
         form.addRow("", self.speed_label)
         form.addRow("", self.realtime_check)
-        form.addRow("Date", self.epoch_button)
+        form.addRow("", self.epoch_button)
         layout.addWidget(playback)
 
         inspect = QGroupBox("Inspect")

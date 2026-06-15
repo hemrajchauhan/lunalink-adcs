@@ -1,0 +1,23 @@
+[
+    {
+        "name": "LunaLink — Detumble",
+        "satellite": "LunaLink",
+        "description": "B-dot magnetic detumbling from the initial tumble rate.",
+        "simulation": {
+            "mode": "detumble",
+            "initial_tumble_deg_s": 10.0,
+            "magnetorquer_max_dipole_am2": 50.0,
+            "n_orbits": 3.0
+        }
+    },
+    {
+        "name": "LunaLink — Sun-pointing",
+        "satellite": "LunaLink",
+        "description": "Quaternion-PD sun-pointing with reaction wheels and magnetic desaturation.",
+        "simulation": {
+            "mode": "sun_pointing",
+            "rw_max_momentum_nms": 4.0,
+            "n_orbits": 3.0
+        }
+    }
+]

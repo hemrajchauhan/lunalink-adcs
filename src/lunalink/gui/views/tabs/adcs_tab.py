@@ -5,9 +5,14 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import pyqtSignal
 
-from ....simulation.adcs import ADCSParams, box_inertia
-from ....simulation.objects import OrbitElements
+from ....simulation.adcs import ADCSParams
+from ....simulation.physics.dynamics import box_inertia
 from ....simulation.repositories.satellite_repository import SatelliteRepository
+from ....simulation.repositories.mission_repository import MissionRepository
+
+_MODE_KEYS = ["detumble", "sun_pointing", "full"]
+_MODE_LABELS = ["Detumble (B-dot)", "Sun-pointing (PD + wheels)",
+                "Full mission (detumble → pointing)"]
 
 
 def _spin(minimum, maximum, value, decimals=2, step=1.0, suffix=""):
@@ -22,25 +27,27 @@ def _spin(minimum, maximum, value, decimals=2, step=1.0, suffix=""):
 
 
 class ADCSTab(QWidget):
-    """ADCS simulation controls. The satellite selector drives the simulated
-    orbit and (auto) inertia; the rest are control/actuator parameters."""
+    """Pick a mission (which carries the satellite + simulation parameters from
+    JSON), optionally tweak, then run. Emits ``parametersChanged``."""
 
     parametersChanged = pyqtSignal(object)
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self._orbit = OrbitElements(24_628_137.0, 0.7207, 63.4, 0.0, 270.0, 0.0)
+        self._satellite = None
         self._build_ui()
-        self._reload_satellites()
+        self._reload_missions()
 
     def _build_ui(self):
         layout = QVBoxLayout(self)
 
-        target = QGroupBox("Simulated satellite")
+        target = QGroupBox("Mission")
         tform = QFormLayout(target)
-        self.sat_combo = QComboBox()
-        self.sat_combo.currentTextChanged.connect(self._on_satellite_changed)
-        tform.addRow("Satellite", self.sat_combo)
+        self.mission_combo = QComboBox()
+        self.mission_combo.currentTextChanged.connect(self._on_mission_changed)
+        self.sat_label = QLabel("—")
+        tform.addRow("Mission", self.mission_combo)
+        tform.addRow("Satellite", self.sat_label)
         layout.addWidget(target)
 
         sc = QGroupBox("Spacecraft / initial state")
@@ -57,7 +64,7 @@ class ADCSTab(QWidget):
 
         act = QGroupBox("Actuators")
         act_form = QFormLayout(act)
-        self.dipole = _spin(1, 500, 30, decimals=1, step=5, suffix=" A·m²")
+        self.dipole = _spin(1, 500, 50, decimals=1, step=5, suffix=" A·m²")
         self.rw_max = _spin(0.1, 200, 4, decimals=1, step=0.5, suffix=" N·m·s")
         act_form.addRow("Magnetorquer dipole", self.dipole)
         act_form.addRow("Reaction-wheel capacity", self.rw_max)
@@ -66,13 +73,7 @@ class ADCSTab(QWidget):
         scen = QGroupBox("Scenario")
         scen_form = QFormLayout(scen)
         self.mode = QComboBox()
-        self.mode.addItems([
-            "Detumble (B-dot)",
-            "Sun-pointing (PD + wheels)",
-            "Full mission (detumble → pointing)",
-        ])
-        self._mode_keys = ["detumble", "sun_pointing", "full"]
-        self.mode.setCurrentIndex(1)
+        self.mode.addItems(_MODE_LABELS)
         self.n_orbits = _spin(1, 20, 3, decimals=0, step=1, suffix=" orbits")
         scen_form.addRow("Mode", self.mode)
         scen_form.addRow("Simulated duration", self.n_orbits)
@@ -89,57 +90,72 @@ class ADCSTab(QWidget):
 
     # ------------------------------------------------------------------
     def showEvent(self, event):
-        self._reload_satellites()
+        self._reload_missions()
         super().showEvent(event)
 
-    def _reload_satellites(self):
-        current = self.sat_combo.currentText()
-        names = [s.name for s in SatelliteRepository().load_all()]
-        self.sat_combo.blockSignals(True)
-        self.sat_combo.clear()
-        self.sat_combo.addItems(names)
+    def _reload_missions(self):
+        current = self.mission_combo.currentText()
+        names = [m.name for m in MissionRepository().load_all()]
+        self.mission_combo.blockSignals(True)
+        self.mission_combo.clear()
+        self.mission_combo.addItems(names)
         if current in names:
-            self.sat_combo.setCurrentText(current)
-        self.sat_combo.blockSignals(False)
-        if self.sat_combo.currentText():
-            self._on_satellite_changed(self.sat_combo.currentText())
+            self.mission_combo.setCurrentText(current)
+        self.mission_combo.blockSignals(False)
+        if self.mission_combo.currentText():
+            self._on_mission_changed(self.mission_combo.currentText())
 
-    def _on_satellite_changed(self, name):
-        sat = SatelliteRepository().get_by_name(name) if name else None
-        if sat is None or sat.orbit is None:
+    def _on_mission_changed(self, name):
+        if not name:
             return
-        self._orbit = sat.orbit
-        I = box_inertia(sat.mass_kg, tuple(sat.dimensions_m))
-        for spin, val in zip((self.ix, self.iy, self.iz), I):
-            spin.blockSignals(True)
-            spin.setValue(float(val))
-            spin.blockSignals(False)
+        repo = MissionRepository()
+        mission = repo.get_by_name(name)
+        if mission is None:
+            return
+        params = repo.resolved_simulation_params(name)
+        self._satellite = SatelliteRepository().get_by_name(mission.satellite)
+        self.sat_label.setText(mission.satellite)
 
-    def select_satellite(self, name):
-        self._reload_satellites()
+        # Populate editable widgets from the mission's parameters.
+        self.tumble.setValue(params.get("initial_tumble_deg_s", 10.0))
+        self.dipole.setValue(params.get("magnetorquer_max_dipole_am2", 50.0))
+        self.rw_max.setValue(params.get("rw_max_momentum_nms", 4.0))
+        self.n_orbits.setValue(params.get("n_orbits", 3.0))
+        mode = params.get("mode", "detumble")
+        if mode in _MODE_KEYS:
+            self.mode.setCurrentIndex(_MODE_KEYS.index(mode))
+
+        if self._satellite is not None:
+            I = box_inertia(self._satellite.mass_kg, tuple(self._satellite.dimensions_m))
+            for spin, val in zip((self.ix, self.iy, self.iz), I):
+                spin.blockSignals(True)
+                spin.setValue(float(val))
+                spin.blockSignals(False)
+
+    def select_mission(self, name):
+        self._reload_missions()
         if name:
-            self.sat_combo.setCurrentText(name)
+            self.mission_combo.setCurrentText(name)
 
     def run_now(self):
         self._emit_params()
 
     def get_params(self) -> ADCSParams:
-        o = self._orbit
-        return ADCSParams(
-            inertia=np.array([self.ix.value(), self.iy.value(), self.iz.value()]),
-            initial_tumble_deg_s=self.tumble.value(),
-            magnetorquer_max_dipole_am2=self.dipole.value(),
-            rw_max_momentum_nms=self.rw_max.value(),
-            n_orbits=self.n_orbits.value(),
-            mode=self._mode_keys[self.mode.currentIndex()],
-            semi_major_axis_m=o.semi_major_axis_m,
-            eccentricity=o.eccentricity,
-            inclination_deg=o.inclination_deg,
-            raan_deg=o.raan_deg,
-            arg_periapsis_deg=o.arg_periapsis_deg,
-            mean_anomaly_epoch_deg=o.mean_anomaly_epoch_deg,
-        )
+        name = self.mission_combo.currentText()
+        params = MissionRepository().resolved_simulation_params(name) if name else {}
+        # Apply any live edits from the widgets.
+        params.update({
+            "initial_tumble_deg_s": self.tumble.value(),
+            "magnetorquer_max_dipole_am2": self.dipole.value(),
+            "rw_max_momentum_nms": self.rw_max.value(),
+            "n_orbits": self.n_orbits.value(),
+            "mode": _MODE_KEYS[self.mode.currentIndex()],
+        })
+        adcs_params = ADCSParams.from_mission(self._satellite, params)
+        # Honour manual inertia overrides from the spin boxes.
+        adcs_params.inertia = np.array([self.ix.value(), self.iy.value(), self.iz.value()])
+        return adcs_params
 
     def _emit_params(self):
-        self.status.setText(f"Simulation updated for {self.sat_combo.currentText()}.")
+        self.status.setText(f"Simulation updated for {self.mission_combo.currentText()}.")
         self.parametersChanged.emit(self.get_params())
