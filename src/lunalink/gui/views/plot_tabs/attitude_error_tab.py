@@ -1,10 +1,13 @@
-from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout
+import pyqtgraph as pg
 
-class AttitudeErrorTab(QWidget):
+from .base_plot_tab import BasePlotTab
 
-    def __init__(self, parent = None):
-        super().__init__(parent)
-    
-        layout = QVBoxLayout()
-        layout.addWidget(QLabel("Attitude Error Plot"))
-        self.setLayout(layout)
+
+class AttitudeErrorTab(BasePlotTab):
+
+    TITLE = "Sun-pointing attitude error"
+    LEFT_LABEL = ("Pointing error", "°")
+
+    def update_plot(self, result):
+        self.plot.plot(result["t_h"], result["attitude_error_deg"],
+                       pen=pg.mkPen("#ffb347", width=2), name="pointing error")

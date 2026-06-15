@@ -8,6 +8,7 @@ from ..config import ( MAIN_WINDOW_WIDTH, MAIN_WINDOW_HEIGHT, LEFT_WINDOW_WIDTH,
 from .views.control_panel import ControlPanel
 from .views.plot_panel import PlotPanel
 from .views.pyvista_view import PyVistaView
+from .controllers.gui_controller import SimulationController
 
 class MainWindow(QMainWindow):
 
@@ -25,6 +26,10 @@ class MainWindow(QMainWindow):
         self.scene_manager = self.pyvista_view.get_scene_manager()
         self.control_panel = ControlPanel(self.scene_manager)
         self.plot_panel = PlotPanel()
+
+        # Connect the ADCS control tab to the plot panel via the simulation.
+        self.controller = SimulationController(
+            self.control_panel.adcs_tab, self.plot_panel)
 
     def _create_layout(self):
         central_widget = QWidget()

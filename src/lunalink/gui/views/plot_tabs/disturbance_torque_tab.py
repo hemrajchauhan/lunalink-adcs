@@ -1,10 +1,14 @@
-from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout
+import pyqtgraph as pg
 
-class DisturbanceTorqueTab(QWidget):
+from .base_plot_tab import BasePlotTab
 
-    def __init__(self, parent = None):
-        super().__init__(parent)
-    
-        layout = QVBoxLayout()
-        layout.addWidget(QLabel("Disturbance Torque Plot"))
-        self.setLayout(layout)
+
+class DisturbanceTorqueTab(BasePlotTab):
+
+    TITLE = "Disturbance torque vs orbit position (peaks at perigee)"
+    LEFT_LABEL = ("Disturbance torque", "N·m")
+
+    def update_plot(self, result):
+        self.plot.plot(result["t_h"], result["disturbance_nm"],
+                       pen=pg.mkPen("#ff6b6b", width=2), name="|τ_dist|")
+        self.plot.setLogMode(x=False, y=True)

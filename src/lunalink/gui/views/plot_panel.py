@@ -25,7 +25,13 @@ class PlotPanel(QWidget):
         self.tab_widget.addTab(self.attitude_error_tab, "Attitude Error")
         self.tab_widget.addTab(self.rw_momentum_tab, "Reaction Wheel Momentum")
         self.tab_widget.addTab(self.disturbance_torque_tab, "Disturbance Torque")
-        
+
         layout = QVBoxLayout()
         layout.addWidget(self.tab_widget)
         self.setLayout(layout)
+
+    def update_results(self, result: dict):
+        """Push a new ADCS simulation result to every plot tab."""
+        for tab in (self.angular_velocity_tab, self.attitude_error_tab,
+                    self.rw_momentum_tab, self.disturbance_torque_tab):
+            tab._refresh(result)
