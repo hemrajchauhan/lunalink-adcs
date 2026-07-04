@@ -1,28 +1,28 @@
-from pathlib import Path
-import json
-
+"""Persistence for celestial bodies (``bodies.json``)."""
 from ..objects import CelestialBody, OrbitElements
+from .json_store import JsonRepository
+
+_TRUTHY = ("true", "1", "yes")
 
 
-class BodyRepository:
+class BodyRepository(JsonRepository):
 
-    def __init__(self):
-        self.path = Path(__file__).parents[2] / "data" / "bodies.json"
+    FILENAME = "bodies.json"
 
-    # -- (de)serialization -------------------------------------------------
-    def _to_body(self, item: dict) -> CelestialBody:
+    # -- record (de)serialisation -----------------------------------------
+    def decode(self, record: dict) -> CelestialBody:
         return CelestialBody(
-            name=item["name"],
-            color=item["color"],
-            radius_m=float(item["radius_m"]),
-            axial_tilt_deg=float(item.get("axial_tilt_deg", 0.0)),
-            rotation_period_h=float(item.get("rotation_period_h", 24.0)),
-            has_ring=bool(item.get("has_ring", False)),
-            parent=item.get("parent"),
-            orbit=OrbitElements.from_dict(item.get("orbit")),
+            name=record["name"],
+            color=record["color"],
+            radius_m=float(record["radius_m"]),
+            axial_tilt_deg=float(record.get("axial_tilt_deg", 0.0)),
+            rotation_period_h=float(record.get("rotation_period_h", 24.0)),
+            has_ring=bool(record.get("has_ring", False)),
+            parent=record.get("parent"),
+            orbit=OrbitElements.from_dict(record.get("orbit")),
         )
 
-    def _to_dict(self, body: CelestialBody) -> dict:
+    def encode(self, body: CelestialBody) -> dict:
         return {
             "name": body.name,
             "color": body.color,
@@ -34,38 +34,14 @@ class BodyRepository:
             "orbit": body.orbit.to_dict() if body.orbit else None,
         }
 
-    # -- persistence -------------------------------------------------------
-    def load_all(self) -> list[CelestialBody]:
-        with open(self.path, "r", encoding="utf-8") as file:
-            data = json.load(file)
-        return [self._to_body(item) for item in data]
-
-    def save_all(self, bodies: list[CelestialBody]) -> None:
-        data = [self._to_dict(body) for body in bodies]
-        with open(self.path, "w", encoding="utf-8") as file:
-            json.dump(data, file, indent=4)
-
+    # -- named operations (kept for call-site readability) ------------------
     def add_body(self, body: CelestialBody) -> None:
-        bodies = self.load_all()
-        bodies.append(body)
-        self.save_all(bodies)
+        self.add(body)
 
-    def update_body(self, updated_body: CelestialBody) -> None:
-        bodies = self.load_all()
-        for index, body in enumerate(bodies):
-            if body.name == updated_body.name:
-                bodies[index] = updated_body
-                break
-        self.save_all(bodies)
+    def delete_body(self, name: str) -> None:
+        self.delete(name)
 
-    def delete_body(self, body_name: str) -> None:
-        bodies = [b for b in self.load_all() if b.name != body_name]
-        self.save_all(bodies)
-
-    def get_by_name(self, name: str) -> CelestialBody | None:
-        return next((b for b in self.load_all() if b.name == name), None)
-
-    # -- property editor support ------------------------------------------
+    # -- property editor support --------------------------------------------
     def get_properties(self, body_name: str):
         body = self.get_by_name(body_name)
         if body is None:
@@ -99,23 +75,14 @@ class BodyRepository:
                 arg_periapsis_deg=float(properties["Arg periapsis (deg)"]),
                 mean_anomaly_epoch_deg=float(properties["Mean anomaly (deg)"]),
             )
-
         body = CelestialBody(
             name=properties["Name"],
             color=properties["Color"],
             radius_m=float(properties["Radius (m)"]),
             axial_tilt_deg=float(properties["Axial tilt (deg)"]),
             rotation_period_h=float(properties["Rotation period (h)"]),
-            has_ring=str(properties.get("Has ring", "False")).lower() in ("true", "1", "yes"),
+            has_ring=str(properties.get("Has ring", "False")).lower() in _TRUTHY,
             parent=parent,
             orbit=orbit,
         )
-
-        bodies = self.load_all()
-        for index, existing in enumerate(bodies):
-            if existing.name == original_name:
-                bodies[index] = body
-                break
-        else:
-            bodies.append(body)
-        self.save_all(bodies)
+        self.upsert(body, original_name)

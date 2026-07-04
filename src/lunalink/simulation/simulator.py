@@ -66,6 +66,42 @@ def _slew_estimate(params: ADCSParams, inertia: np.ndarray, axis: np.ndarray) ->
     }
 
 
+def _environment_at(elements, mu: float, params: ADCSParams, t: float) -> dict:
+    """Orbit state and environment fields at simulation time ``t`` (inertial
+    frame): position/velocity, Sun direction, eclipse flag, geomagnetic field
+    and atmospheric density (zero above the drag cut-off altitude)."""
+    r, v = orbit.state_vectors_in_parent_frame(elements, mu, t)
+    sun = environment.sun_unit_vector(t)
+    altitude = np.linalg.norm(r) - R_EARTH_M
+    return {
+        "r": r,
+        "v": v,
+        "sun": sun,
+        "eclipsed": environment.is_in_eclipse(r, sun),
+        "B_eci": environment.magnetic_field_eci(r),
+        "rho": (environment.atmospheric_density(altitude)
+                if altitude < params.drag_cutoff_altitude_m else 0.0),
+    }
+
+
+def _disturbance_torques(env: dict, R_bi: np.ndarray, B_body: np.ndarray,
+                         I: np.ndarray, params: ADCSParams,
+                         D_res: np.ndarray, cp_offset: np.ndarray) -> dict:
+    """All four disturbance torques (body frame, N m) plus their sum."""
+    torques = {
+        "gg": disturbances.gravity_gradient(R_bi, env["r"], I),
+        "srp": disturbances.solar_radiation(
+            R_bi, env["sun"], env["eclipsed"], params.srp_area_m2,
+            params.reflectance, cp_offset),
+        "mag": disturbances.magnetic(D_res, B_body),
+        "aero": disturbances.aerodynamic(
+            R_bi, env["v"], env["rho"], params.drag_coeff,
+            params.srp_area_m2, cp_offset),
+    }
+    torques["total"] = torques["gg"] + torques["srp"] + torques["mag"] + torques["aero"]
+    return torques
+
+
 def simulate(params: ADCSParams) -> dict:
     I = params.get_inertia()
     elements = params.orbit_elements()
@@ -140,25 +176,18 @@ def simulate(params: ADCSParams) -> dict:
 
     for k in range(steps):
         t = k * dt
-        r, v = orbit.state_vectors_in_parent_frame(elements, mu, t)
+        env = _environment_at(elements, mu, params, t)
+        r, sun, eclipsed = env["r"], env["sun"], env["eclipsed"]
         R_norm = np.linalg.norm(r)
-        sun = environment.sun_unit_vector(t)
-        eclipsed = environment.is_in_eclipse(r, sun)
-        B_eci = environment.magnetic_field_eci(r)
-        altitude = R_norm - R_EARTH_M
-        rho = environment.atmospheric_density(altitude) \
-            if altitude < params.drag_cutoff_altitude_m else 0.0
 
         R_bi = attitude.quat_to_matrix(q)
-        B_body = R_bi @ B_eci
+        B_body = R_bi @ env["B_eci"]
 
-        T_gg = disturbances.gravity_gradient(R_bi, r, I)
-        T_srp = disturbances.solar_radiation(R_bi, sun, eclipsed, params.srp_area_m2,
-                                             params.reflectance, cp_offset)
-        T_mag = disturbances.magnetic(D_res, B_body)
-        T_aero = disturbances.aerodynamic(R_bi, v, rho, params.drag_coeff,
-                                          params.srp_area_m2, cp_offset)
-        T_dist = T_gg + T_srp + T_mag + T_aero
+        torques = _disturbance_torques(env, R_bi, B_body, I, params,
+                                       D_res, cp_offset)
+        T_gg, T_srp = torques["gg"], torques["srp"]
+        T_mag, T_aero = torques["mag"], torques["aero"]
+        T_dist = torques["total"]
 
         # Integrate disturbance torque -> disturbance angular momentum demand.
         accum = accum + T_dist * dt

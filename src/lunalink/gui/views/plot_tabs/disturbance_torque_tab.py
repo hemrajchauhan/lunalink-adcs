@@ -1,24 +1,46 @@
-import pyqtgraph as pg
-
+"""Disturbance torques along the orbit (log scale), with eclipse intervals
+shaded so the solar-pressure drop-outs are self-explanatory."""
 from .base_plot_tab import BasePlotTab
+from . import style
+
+_SERIES = [
+    ("T_gg_nm", "gg", "gravity gradient", 1.3),
+    ("T_srp_nm", "srp", "solar pressure", 1.3),
+    ("T_mag_nm", "magdist", "magnetic", 1.3),
+    ("T_aero_nm", "aero", "aerodynamic", 1.3),
+    ("disturbance_nm", "mag", "total", 2.2),
+]
 
 
 class DisturbanceTorqueTab(BasePlotTab):
 
-    TITLE = "Disturbance torques vs orbit (GG at perigee, SRP at apogee)"
+    TITLE = "Disturbance torques along the orbit"
     LEFT_LABEL = ("Torque", "N·m")
+    LOG_Y = True
 
     def update_plot(self, result):
         t = result["t_h"]
-        series = [
-            ("T_gg_nm", "#ff6b6b", "gravity gradient"),
-            ("T_srp_nm", "#ffd24d", "solar pressure"),
-            ("T_mag_nm", "#5b9bff", "magnetic"),
-            ("T_aero_nm", "#5cd65c", "aerodynamic"),
-            ("disturbance_nm", "#ffffff", "total"),
-        ]
-        for key, color, name in series:
+        for key, color, name, width in _SERIES:
             if key in result:
-                width = 2.0 if key == "disturbance_nm" else 1.3
-                self.plot.plot(t, result[key], pen=pg.mkPen(color, width=width), name=name)
-        self.plot.setLogMode(x=False, y=True)
+                self.plot.plot(t, result[key],
+                               pen=style.line_pen(style.SERIES[color], width),
+                               name=name)
+        eclipse = result.get("eclipse")
+        if eclipse is not None:
+            style.shade_intervals(self.plot, t, eclipse)
+
+    def build_summary(self, result):
+        hierarchy = result.get("disturbance_hierarchy") or []
+        rows = []
+        for entry in hierarchy:
+            rows.append((entry["source"],
+                         f"peak {style.fmt(entry['peak_nm'], 'N·m')} "
+                         f"&nbsp;·&nbsp; perigee {style.fmt(entry['perigee_nm'], 'N·m')} "
+                         f"&nbsp;·&nbsp; apogee {style.fmt(entry['apogee_nm'], 'N·m')} "
+                         f"&nbsp;·&nbsp; <i>{entry['behaviour']}</i>"))
+        note = ("Shaded bands are eclipse passes — solar-radiation-pressure "
+                "torque vanishes there. Gravity-gradient, magnetic and "
+                "aerodynamic torques all spike at perigee (∝ 1/r³ or denser "
+                "air), while SRP dominates the long apogee arcs.")
+        return style.summary_html(
+            "Disturbance hierarchy (largest first)", rows, note)

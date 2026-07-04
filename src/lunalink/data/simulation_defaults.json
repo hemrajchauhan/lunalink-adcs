@@ -20,7 +20,6 @@
 
     "bdot_gain_fraction": 0.5,
     "desat_trigger_fraction": 0.8,
-    "momentum_dump_factor": 0.6,
     "acquire_threshold_deg": 5.0,
     "drag_cutoff_altitude_m": 600000.0,
     "pointing_initial_offset_deg": 12.5,

@@ -1,27 +1,26 @@
-from pathlib import Path
-import json
+"""Persistence for spacecraft (``satellites.json``)."""
 import numpy as np
 
 from ..objects import Satellite, OrbitElements
+from .json_store import JsonRepository
 
 
-class SatelliteRepository:
+class SatelliteRepository(JsonRepository):
 
-    def __init__(self):
-        self.path = Path(__file__).parents[2] / "data" / "satellites.json"
+    FILENAME = "satellites.json"
 
-    # -- (de)serialization -------------------------------------------------
-    def _to_satellite(self, item: dict) -> Satellite:
+    # -- record (de)serialisation -----------------------------------------
+    def decode(self, record: dict) -> Satellite:
         return Satellite(
-            name=item["name"],
-            color=item["color"],
-            mass_kg=float(item["mass_kg"]),
-            dimensions_m=np.array(item["dimensions_m"], dtype=float),
-            parent=item.get("parent"),
-            orbit=OrbitElements.from_dict(item.get("orbit")),
+            name=record["name"],
+            color=record["color"],
+            mass_kg=float(record["mass_kg"]),
+            dimensions_m=np.array(record["dimensions_m"], dtype=float),
+            parent=record.get("parent"),
+            orbit=OrbitElements.from_dict(record.get("orbit")),
         )
 
-    def _to_dict(self, satellite: Satellite) -> dict:
+    def encode(self, satellite: Satellite) -> dict:
         return {
             "name": satellite.name,
             "color": satellite.color,
@@ -31,38 +30,14 @@ class SatelliteRepository:
             "orbit": satellite.orbit.to_dict() if satellite.orbit else None,
         }
 
-    # -- persistence -------------------------------------------------------
-    def load_all(self) -> list[Satellite]:
-        with open(self.path, "r", encoding="utf-8") as file:
-            data = json.load(file)
-        return [self._to_satellite(item) for item in data]
-
-    def save_all(self, satellites: list[Satellite]) -> None:
-        data = [self._to_dict(satellite) for satellite in satellites]
-        with open(self.path, "w", encoding="utf-8") as file:
-            json.dump(data, file, indent=4)
-
+    # -- named operations (kept for call-site readability) ------------------
     def add_satellite(self, satellite: Satellite) -> None:
-        satellites = self.load_all()
-        satellites.append(satellite)
-        self.save_all(satellites)
+        self.add(satellite)
 
-    def update_satellite(self, updated_satellite: Satellite) -> None:
-        satellites = self.load_all()
-        for index, satellite in enumerate(satellites):
-            if satellite.name == updated_satellite.name:
-                satellites[index] = updated_satellite
-                break
-        self.save_all(satellites)
+    def delete_satellite(self, name: str) -> None:
+        self.delete(name)
 
-    def delete_satellite(self, satellite_name: str) -> None:
-        satellites = [s for s in self.load_all() if s.name != satellite_name]
-        self.save_all(satellites)
-
-    def get_by_name(self, name: str) -> Satellite | None:
-        return next((s for s in self.load_all() if s.name == name), None)
-
-    # -- property editor support ------------------------------------------
+    # -- property editor support --------------------------------------------
     def get_properties(self, satellite_name: str):
         satellite = self.get_by_name(satellite_name)
         if satellite is None:
@@ -97,7 +72,6 @@ class SatelliteRepository:
                 arg_periapsis_deg=float(properties["Arg periapsis (deg)"]),
                 mean_anomaly_epoch_deg=float(properties["Mean anomaly (deg)"]),
             )
-
         satellite = Satellite(
             name=properties["Name"],
             color=properties["Color"],
@@ -110,12 +84,4 @@ class SatelliteRepository:
             parent=parent,
             orbit=orbit,
         )
-
-        satellites = self.load_all()
-        for index, existing in enumerate(satellites):
-            if existing.name == original_name:
-                satellites[index] = satellite
-                break
-        else:
-            satellites.append(satellite)
-        self.save_all(satellites)
+        self.upsert(satellite, original_name)

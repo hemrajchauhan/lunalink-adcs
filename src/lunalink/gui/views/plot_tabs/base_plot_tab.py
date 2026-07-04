@@ -1,41 +1,69 @@
-import pyqtgraph as pg
+"""Base class for the ADCS result plot tabs.
+
+Provides the shared page layout: a themed pyqtgraph plot (built from
+:mod:`style`), a hint shown until the first simulation run, and an optional
+rich-text summary beneath the chart. Subclasses implement
+
+    update_plot(result)            -- draw the series/markers
+    build_summary(result) -> str   -- optional HTML for the summary area
+
+where ``result`` is the dict returned by
+:func:`lunalink.simulation.simulator.simulate`.
+"""
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel
+
+from . import style
 
 
 class BasePlotTab(QWidget):
-    """A pyqtgraph plot with a title, axis labels and a legend.
-
-    Subclasses implement :meth:`update_plot(result)` where ``result`` is the
-    dict returned by :func:`lunalink.simulation.simulator.simulate`.
-    """
 
     TITLE = "Plot"
     LEFT_LABEL = ("y", "")
     BOTTOM_LABEL = ("Time", "h")
+    LOG_Y = False
 
     def __init__(self, parent=None):
         super().__init__(parent)
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(4, 4, 4, 4)
+        layout.setContentsMargins(6, 6, 6, 6)
+        layout.setSpacing(4)
 
-        self.plot = pg.PlotWidget()
-        self.plot.setBackground("#10131c")
-        self.plot.showGrid(x=True, y=True, alpha=0.25)
-        self.plot.addLegend(offset=(-10, 10))
-        self.plot.setLabel("left", self.LEFT_LABEL[0], units=self.LEFT_LABEL[1])
-        self.plot.setLabel("bottom", self.BOTTOM_LABEL[0], units=self.BOTTOM_LABEL[1])
-        self.plot.setTitle(self.TITLE, color="#e6e6e6", size="11pt")
-
-        self.hint = QLabel("Run the simulation from the ADCS Control tab.")
-        self.hint.setStyleSheet("color: #888; padding: 2px;")
-
+        self.hint = QLabel("Run a simulation (ADCS Simulation tab or the "
+                           "Mission tab) to populate this plot.")
+        self.hint.setStyleSheet(f"color: {style.MUTED}; padding: 2px;")
+        self.hint.setWordWrap(True)
         layout.addWidget(self.hint)
-        layout.addWidget(self.plot)
 
-    def update_plot(self, result: dict):
+        self.plot = style.make_plot(self.TITLE, self.LEFT_LABEL,
+                                    self.BOTTOM_LABEL, log_y=self.LOG_Y)
+        layout.addWidget(self.plot, stretch=5)
+
+        self.summary = QLabel("")
+        self.summary.setTextFormat(Qt.TextFormat.RichText)
+        self.summary.setWordWrap(True)
+        self.summary.setStyleSheet("padding: 4px 6px;")
+        self.summary.hide()
+        layout.addWidget(self.summary, stretch=0)
+
+    # -- subclass hooks -----------------------------------------------------
+    def update_plot(self, result: dict) -> None:
         raise NotImplementedError
 
-    def _refresh(self, result: dict):
-        self.plot.clear()
+    def build_summary(self, result: dict) -> str | None:
+        return None
+
+    # -- refresh contract (called by PlotPanel) --------------------------------
+    def refresh(self, result: dict) -> None:
         self.hint.hide()
+        self.plot.clear()
         self.update_plot(result)
+        html = self.build_summary(result)
+        if html:
+            self.summary.setText(html)
+            self.summary.show()
+        else:
+            self.summary.hide()
+
+    # Backwards-compatible alias.
+    _refresh = refresh

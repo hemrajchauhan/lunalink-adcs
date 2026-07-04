@@ -19,7 +19,7 @@ _SIMULATION_FALLBACK = {
     "drag_coeff": 2.2, "cp_offset_m": 0.1, "natural_freq": 0.05,
     "damping": 0.7, "desat_gain": 1.0, "detumble_exit_deg_s": 1.0,
     "bdot_gain_fraction": 0.5, "desat_trigger_fraction": 0.8,
-    "momentum_dump_factor": 0.6, "acquire_threshold_deg": 5.0,
+    "acquire_threshold_deg": 5.0,
     "drag_cutoff_altitude_m": 600000.0, "pointing_initial_offset_deg": 12.5,
     "tumble_axis": [1.0, 0.6, -0.3], "pointing_initial_rate_deg_s": [1.0, -0.5, 0.3],
     "slew_angle_deg": 90.0, "slew_axis": [0.0, 0.0, 1.0], "slew_window_s": 1800.0,

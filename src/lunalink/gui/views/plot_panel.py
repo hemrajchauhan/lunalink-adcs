@@ -1,4 +1,5 @@
-from PyQt6.QtWidgets  import QWidget, QVBoxLayout, QTabWidget
+"""The tabbed panel that hosts all ADCS result plots."""
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QTabWidget
 
 from .plot_tabs.angular_velocity_tab import AngularVelocityTab
 from .plot_tabs.attitude_error_tab import AttitudeErrorTab
@@ -57,4 +58,4 @@ class PlotPanel(QWidget):
                     self.rw_momentum_tab, self.disturbance_torque_tab,
                     self.angular_momentum_tab, self.momentum_budget_tab,
                     self.determination_tab):
-            tab._refresh(result)
+            tab.refresh(result)

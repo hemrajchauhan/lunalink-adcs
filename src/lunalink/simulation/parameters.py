@@ -47,7 +47,6 @@ class ADCSParams:
     # Algorithm / solver constants (also data, not magic numbers)
     bdot_gain_fraction: float = None
     desat_trigger_fraction: float = None
-    momentum_dump_factor: float = None
     acquire_threshold_deg: float = None
     drag_cutoff_altitude_m: float = None
     pointing_initial_offset_deg: float = None

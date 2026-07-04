@@ -20,9 +20,6 @@ MAIN_WINDOW_HEIGHT = 1_200
 SCENE_WIDTH = 1_040
 CENTER_WIDTH = 640
 MISSION_INFO_WIDTH = 320
-# Backwards-compatible aliases (older code referred to these names).
-LEFT_WINDOW_WIDTH = SCENE_WIDTH
-RIGHT_WINDOW_WIDTH = CENTER_WIDTH
 # In the centre column the controls stay compact so the plots get the room.
 CONTROL_PANEL_HEIGHT = 380
 PLOT_PANEL_HEIGHT = MAIN_WINDOW_HEIGHT - CONTROL_PANEL_HEIGHT

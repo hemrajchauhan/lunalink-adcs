@@ -120,4 +120,37 @@ QScrollBar::handle:vertical {{
     background: #313c52; border-radius: 5px; min-height: 24px;
 }}
 QScrollBar::add-line, QScrollBar::sub-line {{ height: 0; }}
+QLineEdit:disabled, QDoubleSpinBox:disabled, QComboBox:disabled {{
+    color: #5b6474;
+    background-color: #12161f;
+    border-color: #232b3c;
+}}
+QPushButton:disabled {{
+    color: #5b6474;
+    background-color: #161b27;
+    border-color: #232b3c;
+}}
+QMenu {{
+    background-color: #161b27;
+    border: 1px solid #313c52;
+    border-radius: 6px;
+    padding: 4px;
+}}
+QMenu::item {{
+    padding: 5px 22px 5px 12px;
+    border-radius: 4px;
+}}
+QMenu::item:selected {{
+    background-color: {ACCENT};
+    color: #07101f;
+}}
+QMessageBox, QDialog QLabel {{
+    background-color: transparent;
+}}
+QSplitter::handle {{
+    background-color: #1a2030;
+}}
+QSplitter::handle:hover {{
+    background-color: {ACCENT};
+}}
 """

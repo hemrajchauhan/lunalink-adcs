@@ -48,10 +48,13 @@ def run(output_dir: str = "output", params: ADCSParams = None) -> dict:
     # 3. Reaction-wheel momentum
     fig, ax = plt.subplots(figsize=(8, 4))
     ax.plot(t, result["wheel_momentum_mag_nms"], color="tab:green")
-    ax.axhline(0.8 * params.rw_max_momentum_nms, color="r", linestyle=":",
-               label="desaturation level")
+    ax.axhline(result.get("desat_trigger_nms",
+                          params.desat_trigger_fraction * params.rw_max_momentum_nms),
+               color="orange", linestyle=":", label="desaturation trigger")
+    ax.axhline(params.rw_max_momentum_nms, color="r", linestyle="--",
+               label="per-wheel capacity")
     ax.set(xlabel="Time [h]", ylabel="Wheel momentum [N·m·s]",
-           title="Reaction-wheel momentum (desaturation saw-tooth)")
+           title="Reaction-wheel stored momentum")
     ax.legend(); ax.grid(alpha=0.3)
     fig.tight_layout(); fig.savefig(out / "rw_momentum.png", dpi=130); plt.close(fig)
 
@@ -122,10 +125,11 @@ def run(output_dir: str = "output", params: ADCSParams = None) -> dict:
               + ("  → MOMENTUM-LIMITED" if slew['momentum_limited'] else ""))
     if budget:
         slew = budget.get("slew_momentum_nms", 0.0)
+        slew_angle = budget.get("slew_angle_deg") or 90.0
         driver = "slew" if slew >= budget["cyclic_swing_nms"] else "disturbance"
         print("  Momentum budget:")
         print(f"    Cyclic disturbance swing / orbit (store): ±{budget['cyclic_swing_nms']:.3f} N·m·s")
-        print(f"    Slew demand (90 deg):                      {slew:.2f} N·m·s  [{driver}-driven]")
+        print(f"    Slew demand ({slew_angle:.0f} deg):                      {slew:.2f} N·m·s  [{driver}-driven]")
         print(f"    Secular momentum / day (dump):             {budget['secular_per_day_nms']:.3f} N·m·s/day")
         print(f"    -> wheels h_max >= {budget['recommended_wheel_hmax_nms']:.2f} N·m·s,"
               f" dump dipole >= {budget['dump_dipole_am2']:.0f} A·m²")
