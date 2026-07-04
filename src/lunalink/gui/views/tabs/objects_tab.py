@@ -40,7 +40,10 @@ class ObjectsTab(QWidget):
 
     def _create_layout(self):
         layout = QVBoxLayout()
-        layout.addWidget(QLabel("Right-click for Add / Remove · double-click to focus"))
+        hint = QLabel("Right-click to add or remove an object. "
+                      "Double-click an object to centre the camera on it.")
+        hint.setWordWrap(True)
+        layout.addWidget(hint)
         # The tree gets the lion's share of the space.
         layout.addWidget(self.tree, stretch=3)
 

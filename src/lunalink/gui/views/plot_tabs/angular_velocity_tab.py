@@ -6,10 +6,19 @@ from .base_plot_tab import BasePlotTab
 
 class AngularVelocityTab(BasePlotTab):
 
-    TITLE = "Body angular velocity — detumbling convergence"
+    TITLE = "Body angular velocity"
     LEFT_LABEL = ("Angular velocity", "°/s")
 
+    _TITLES = {
+        "detumble": "Body angular velocity — detumbling convergence",
+        "full": "Body angular velocity — detumble, then pointing",
+        "slew": "Body angular velocity — slew rate profile",
+        "sun_pointing": "Body angular velocity — rate damping while pointing",
+    }
+
     def update_plot(self, result):
+        self.plot.setTitle(self._TITLES.get(result.get("mode"), self.TITLE),
+                           color="#e6e6e6", size="11pt")
         t = result["t_h"]
         omega = result["omega_deg_s"]
         colors = ("#ff6b6b", "#5cd65c", "#5b9bff")

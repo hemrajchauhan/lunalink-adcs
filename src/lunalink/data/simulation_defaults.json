@@ -27,5 +27,18 @@
     "tumble_axis": [1.0, 0.6, -0.3],
     "pointing_initial_rate_deg_s": [1.0, -0.5, 0.3],
 
+    "slew_angle_deg": 90.0,
+    "slew_axis": [0.0, 0.0, 1.0],
+    "slew_window_s": 1800.0,
+
+    "estimator_enabled": true,
+    "gyro_bias_deg_hr": [3.0, -2.0, 1.5],
+    "gyro_noise_std_rad_s": 1.0e-6,
+    "star_tracker_noise_arcsec": 10.0,
+    "star_tracker_interval_s": 20.0,
+    "estimator_kp": 0.7,
+    "estimator_ki": 0.5,
+    "estimator_seed": 12345,
+
     "reference_satellite": "LunaLink"
 }

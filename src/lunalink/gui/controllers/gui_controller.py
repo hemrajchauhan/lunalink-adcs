@@ -24,5 +24,12 @@ class SimulationController:
         try:
             result = simulate(params)
             self.plot_panel.update_results(result)
+            if hasattr(self.adcs_tab, "show_run_summary"):
+                self.adcs_tab.show_run_summary(result)
+        except Exception as exc:                      # surface, don't crash the GUI
+            if hasattr(self.adcs_tab, "show_run_error"):
+                self.adcs_tab.show_run_error(str(exc))
+            else:
+                raise
         finally:
             QGuiApplication.restoreOverrideCursor()

@@ -5,6 +5,8 @@ from .plot_tabs.attitude_error_tab import AttitudeErrorTab
 from .plot_tabs.rw_momentum_tab import RWMomentumTab
 from .plot_tabs.disturbance_torque_tab import DisturbanceTorqueTab
 from .plot_tabs.angular_momentum_tab import AngularMomentumTab
+from .plot_tabs.momentum_budget_tab import MomentumBudgetTab
+from .plot_tabs.determination_tab import DeterminationTab
 
 class PlotPanel(QWidget):
 
@@ -21,13 +23,29 @@ class PlotPanel(QWidget):
         self.rw_momentum_tab = RWMomentumTab()
         self.disturbance_torque_tab = DisturbanceTorqueTab()
         self.angular_momentum_tab = AngularMomentumTab()
+        self.momentum_budget_tab = MomentumBudgetTab()
+        self.determination_tab = DeterminationTab()
 
     def _create_layout(self):
-        self.tab_widget.addTab(self.angular_velocity_tab, "Angular Velocity")
-        self.tab_widget.addTab(self.attitude_error_tab, "Attitude Error")
-        self.tab_widget.addTab(self.rw_momentum_tab, "Reaction Wheel Momentum")
-        self.tab_widget.addTab(self.disturbance_torque_tab, "Disturbance Torque")
-        self.tab_widget.addTab(self.angular_momentum_tab, "Angular Momentum")
+        tabs = [
+            (self.angular_velocity_tab, "Angular Velocity",
+             "Body rotation rate over time (shows detumbling)."),
+            (self.attitude_error_tab, "Pointing Error",
+             "Angle between the spacecraft and its target direction."),
+            (self.rw_momentum_tab, "Wheel Momentum",
+             "Reaction-wheel stored momentum and desaturation."),
+            (self.disturbance_torque_tab, "Disturbance Torques",
+             "External torques acting on the spacecraft along the orbit."),
+            (self.angular_momentum_tab, "Total Momentum",
+             "Total angular momentum (an integrator sanity check)."),
+            (self.momentum_budget_tab, "Momentum Budget",
+             "How much momentum the wheels must store and the torquers remove."),
+            (self.determination_tab, "Pointing Budget",
+             "Knowledge error vs control error and gyro-bias convergence."),
+        ]
+        for widget, title, tip in tabs:
+            index = self.tab_widget.addTab(widget, title)
+            self.tab_widget.setTabToolTip(index, tip)
 
         layout = QVBoxLayout()
         layout.addWidget(self.tab_widget)
@@ -37,5 +55,6 @@ class PlotPanel(QWidget):
         """Push a new ADCS simulation result to every plot tab."""
         for tab in (self.angular_velocity_tab, self.attitude_error_tab,
                     self.rw_momentum_tab, self.disturbance_torque_tab,
-                    self.angular_momentum_tab):
+                    self.angular_momentum_tab, self.momentum_budget_tab,
+                    self.determination_tab):
             tab._refresh(result)

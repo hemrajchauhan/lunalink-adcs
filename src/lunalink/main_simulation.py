@@ -74,11 +74,86 @@ def run(output_dir: str = "output", params: ADCSParams = None) -> dict:
     ax.grid(alpha=0.3)
     fig.tight_layout(); fig.savefig(out / "angular_momentum.png", dpi=130); plt.close(fig)
 
+    # 6. Momentum budget (disturbance angular-momentum demand)
+    fig, ax = plt.subplots(figsize=(8, 4))
+    ax.plot(t, result["dist_momentum_nms"], color="tab:blue")
+    ax.set(xlabel="Time [h]", ylabel="|∫T_dist dt| [N·m·s]",
+           title="Disturbance momentum demand (wiggle = cyclic, climb = secular)")
+    ax.grid(alpha=0.3)
+    fig.tight_layout(); fig.savefig(out / "momentum_budget.png", dpi=130); plt.close(fig)
+
+    # 7. Determination: knowledge error vs control error (pointing budget)
+    det = result.get("determination")
+    if det and "knowledge_error_deg" in result:
+        fig, (a1, a2) = plt.subplots(2, 1, figsize=(8, 6), sharex=True)
+        a1.plot(t, result["knowledge_error_deg"], color="tab:red", linewidth=0.9,
+                label="knowledge error (estimate vs truth)")
+        a1.plot(t, result["attitude_error_deg"], color="tab:orange", linewidth=0.9,
+                label="control error (truth vs command)")
+        a1.axhline(det["knowledge_budget_deg"], color="tab:red", linestyle=":",
+                   label="knowledge budget 0.01°")
+        a1.set(ylabel="Error [°]", title="Pointing budget: knowledge vs control")
+        a1.set_yscale("log"); a1.legend(fontsize=8); a1.grid(alpha=0.3, which="both")
+        a2.plot(t, result["gyro_bias_error_deg_hr"], color="tab:blue")
+        a2.set(xlabel="Time [h]", ylabel="Gyro-bias error [°/hr]",
+               title="Gyro-bias estimate convergence")
+        a2.grid(alpha=0.3)
+        fig.tight_layout(); fig.savefig(out / "pointing_budget.png", dpi=130); plt.close(fig)
+
+    acquire = result.get("t_acquire_h")
+    budget = result.get("momentum_budget", {})
     print("ADCS simulation complete.")
-    print(f"  Detumble acquisition : {result['t_acquire_h']:.2f} h")
+    acq_label = "Slew settle" if params.mode == "slew" else "Detumble acquisition"
+    print(f"  {acq_label:<20} : {acquire:.2f} h" if acquire is not None
+          else f"  {acq_label:<20} : not reached in run")
     print(f"  Final |ω|            : {result['omega_mag_deg_s'][-1]:.4f} °/s")
     print(f"  Final pointing error : {result['attitude_error_deg'][-1]:.3f} °")
     print(f"  Peak wheel momentum  : {result['wheel_momentum_mag_nms'].max():.2f} N·m·s")
+    slew = result.get("slew")
+    if slew:
+        settle = slew.get("settle_time_s")
+        print("  Slew (rest-to-rest):")
+        print(f"    Commanded angle      : {slew['angle_deg']:.0f}°  (I_axis {slew['inertia_axis_kgm2']:.0f} kg·m²)")
+        print(f"    Bang-bang estimate   : {slew['bang_bang_time_s']:.0f} s  (2√(θ/α))")
+        print("    Actual settle (<thr) : "
+              + (f"{settle:.0f} s" if settle is not None else "not reached"))
+        print(f"    Peak wheel momentum  : {slew['peak_wheel_nms']:.2f} N·m·s"
+              f" ({slew['peak_momentum_nms']:.2f} ideal)"
+              + ("  → MOMENTUM-LIMITED" if slew['momentum_limited'] else ""))
+    if budget:
+        slew = budget.get("slew_momentum_nms", 0.0)
+        driver = "slew" if slew >= budget["cyclic_swing_nms"] else "disturbance"
+        print("  Momentum budget:")
+        print(f"    Cyclic disturbance swing / orbit (store): ±{budget['cyclic_swing_nms']:.3f} N·m·s")
+        print(f"    Slew demand (90 deg):                      {slew:.2f} N·m·s  [{driver}-driven]")
+        print(f"    Secular momentum / day (dump):             {budget['secular_per_day_nms']:.3f} N·m·s/day")
+        print(f"    -> wheels h_max >= {budget['recommended_wheel_hmax_nms']:.2f} N·m·s,"
+              f" dump dipole >= {budget['dump_dipole_am2']:.0f} A·m²")
+    print("  Disturbance hierarchy:")
+    for e in result.get("disturbance_hierarchy", []):
+        print(f"    {e['source']:<18} peak {e['peak_nm']:.2e} N·m  [{e['behaviour']}]")
+    j2 = result.get("j2_secular")
+    if j2:
+        d = j2["drift_over_run"]
+        crit = " (≈critical: apogee frozen)" if j2["near_critical"] else ""
+        print("  J2 secular drift (justifies fixed-orbit assumption):")
+        print(f"    RAAN rate          : {j2['raan_dot_deg_day']:+.4f} °/day"
+              f"  → {d['raan_drift_deg']:+.4f}° over {d['window_days']:.2f} d")
+        print(f"    Arg-perigee rate   : {j2['argp_dot_deg_day']:+.4f} °/day"
+              f"  → {d['argp_drift_deg']:+.4f}° over the run{crit}")
+        print(f"    Critical incl.     : {j2['critical_inclination_deg']:.2f}°")
+    det = result.get("determination")
+    if det:
+        ok = "✓" if det["knowledge_rms_deg"] <= det["knowledge_budget_deg"] else "✗"
+        print("  Attitude determination (pointing budget):")
+        print(f"    Gyro bias learned    : {det['bias_initial_deg_hr']:.2f}"
+              f" → {det['bias_final_deg_hr']:.3f} °/hr")
+        print(f"    Knowledge error      : RMS {det['knowledge_rms_deg']:.4f}°"
+              f"  (budget {det['knowledge_budget_deg']:.2f}°) {ok}")
+        print(f"    Control error        : RMS {det['control_rms_deg']:.4f}°"
+              f"  (budget {det['control_budget_deg']:.2f}°)")
+        print(f"    Total pointing       : {det['pointing_total_deg']:.4f}°"
+              f"  (budget {det['total_budget_deg']:.2f}°)")
     print(f"  Plots written to     : {out.resolve()}")
     return result
 

@@ -10,9 +10,14 @@ from ....simulation.physics.dynamics import box_inertia
 from ....simulation.repositories.satellite_repository import SatelliteRepository
 from ....simulation.repositories.mission_repository import MissionRepository
 
-_MODE_KEYS = ["detumble", "sun_pointing", "full"]
-_MODE_LABELS = ["Detumble (B-dot)", "Sun-pointing (PD + wheels)",
-                "Full mission (detumble → pointing)"]
+_MODE_KEYS = ["detumble", "sun_pointing", "full", "slew"]
+_MODE_LABELS = ["Detumble", "Sun-pointing", "Full mission", "Slew maneuver"]
+_MODE_TOOLTIP = (
+    "Detumble: null out an initial spin using magnetorquers.\n"
+    "Sun-pointing: hold a body axis on the Sun with reaction wheels.\n"
+    "Full mission: detumble first, then acquire and hold Sun-pointing.\n"
+    "Slew maneuver: a rest-to-rest reorientation by a commanded angle."
+)
 
 
 def _spin(minimum, maximum, value, decimals=2, step=1.0, suffix=""):
@@ -44,21 +49,28 @@ class ADCSTab(QWidget):
         target = QGroupBox("Mission")
         tform = QFormLayout(target)
         self.mission_combo = QComboBox()
+        self.mission_combo.setToolTip("Mission to simulate. Its parameters fill in "
+                                      "the fields below, which you can fine-tune.")
         self.mission_combo.currentTextChanged.connect(self._on_mission_changed)
-        self.sat_label = QLabel("—")
+        self.sat_label = QLabel("Not selected")
         tform.addRow("Mission", self.mission_combo)
-        tform.addRow("Satellite", self.sat_label)
+        tform.addRow("Spacecraft", self.sat_label)
         layout.addWidget(target)
 
-        sc = QGroupBox("Spacecraft / initial state")
+        sc = QGroupBox("Spacecraft and Initial State")
         sc_form = QFormLayout(sc)
         self.ix = _spin(1, 100000, 135, step=10, suffix=" kg·m²")
         self.iy = _spin(1, 100000, 208, step=10, suffix=" kg·m²")
         self.iz = _spin(1, 100000, 260, step=10, suffix=" kg·m²")
         self.tumble = _spin(0, 60, 10, decimals=1, step=0.5, suffix=" °/s")
-        sc_form.addRow("Inertia Ix (auto)", self.ix)
-        sc_form.addRow("Inertia Iy (auto)", self.iy)
-        sc_form.addRow("Inertia Iz (auto)", self.iz)
+        for box, axis in ((self.ix, "X"), (self.iy, "Y"), (self.iz, "Z")):
+            box.setToolTip(f"Resistance to rotation about the body {axis} axis "
+                           "(filled from the spacecraft mass and dimensions).")
+        self.tumble.setToolTip("How fast the spacecraft is spinning at the start "
+                               "of the run.")
+        sc_form.addRow("Moment of inertia (X axis)", self.ix)
+        sc_form.addRow("Moment of inertia (Y axis)", self.iy)
+        sc_form.addRow("Moment of inertia (Z axis)", self.iz)
         sc_form.addRow("Initial tumble rate", self.tumble)
         layout.addWidget(sc)
 
@@ -66,29 +78,57 @@ class ADCSTab(QWidget):
         act_form = QFormLayout(act)
         self.dipole = _spin(1, 500, 50, decimals=1, step=5, suffix=" A·m²")
         self.rw_max = _spin(0.1, 200, 4, decimals=1, step=0.5, suffix=" N·m·s")
-        act_form.addRow("Magnetorquer dipole", self.dipole)
+        self.rw_torque = _spin(0.001, 5, 0.05, decimals=3, step=0.01, suffix=" N·m")
+        self.dipole.setToolTip("Maximum magnetic dipole the torque rods can produce "
+                               "(used for detumbling and wheel desaturation).")
+        self.rw_max.setToolTip("Maximum angular momentum each reaction wheel can "
+                               "store before it saturates and must be desaturated.")
+        self.rw_torque.setToolTip("Maximum torque each reaction wheel can apply. "
+                                  "Limits how aggressively the spacecraft can turn.")
+        act_form.addRow("Magnetorquer strength", self.dipole)
         act_form.addRow("Reaction-wheel capacity", self.rw_max)
+        act_form.addRow("Reaction-wheel max torque", self.rw_torque)
         layout.addWidget(act)
 
         scen = QGroupBox("Scenario")
         scen_form = QFormLayout(scen)
         self.mode = QComboBox()
         self.mode.addItems(_MODE_LABELS)
+        self.mode.setToolTip(_MODE_TOOLTIP)
+        self.mode.currentIndexChanged.connect(self._on_mode_changed)
         self.n_orbits = _spin(1, 20, 3, decimals=0, step=1, suffix=" orbits")
-        scen_form.addRow("Mode", self.mode)
+        self.n_orbits.setToolTip("How many orbits the simulation covers "
+                                 "(not used for a slew, which is a short event).")
+        self.slew_angle = _spin(1, 180, 90, decimals=0, step=5, suffix=" °")
+        self.slew_angle.setToolTip("Angle of the rest-to-rest reorientation "
+                                   "(only used in Slew maneuver mode).")
+        scen_form.addRow("Control mode", self.mode)
         scen_form.addRow("Simulated duration", self.n_orbits)
+        scen_form.addRow("Slew angle", self.slew_angle)
         layout.addWidget(scen)
 
-        self.run_button = QPushButton("Run simulation")
+        self.run_button = QPushButton("Run Simulation")
+        self.run_button.setToolTip("Run the ADCS simulation with the settings above. "
+                                   "Results appear in the plot tabs below.")
         self.run_button.clicked.connect(self._emit_params)
         layout.addWidget(self.run_button)
 
         self.status = QLabel("")
+        self.status.setWordWrap(True)
         self.status.setStyleSheet("color: #6fae6f;")
         layout.addWidget(self.status)
         layout.addStretch()
+        self._on_mode_changed(self.mode.currentIndex())
 
     # ------------------------------------------------------------------
+    def _on_mode_changed(self, index):
+        """Enable only the fields that the selected scenario actually uses."""
+        is_slew = _MODE_KEYS[index] == "slew"
+        self.n_orbits.setEnabled(not is_slew)
+        self.slew_angle.setEnabled(is_slew)
+        uses_tumble = _MODE_KEYS[index] in ("detumble", "full")
+        self.tumble.setEnabled(uses_tumble)
+
     def showEvent(self, event):
         self._reload_missions()
         super().showEvent(event)
@@ -120,6 +160,8 @@ class ADCSTab(QWidget):
         self.tumble.setValue(params.get("initial_tumble_deg_s", 10.0))
         self.dipole.setValue(params.get("magnetorquer_max_dipole_am2", 50.0))
         self.rw_max.setValue(params.get("rw_max_momentum_nms", 4.0))
+        self.rw_torque.setValue(params.get("rw_max_torque_nm", 0.05))
+        self.slew_angle.setValue(params.get("slew_angle_deg", 90.0))
         self.n_orbits.setValue(params.get("n_orbits", 3.0))
         mode = params.get("mode", "detumble")
         if mode in _MODE_KEYS:
@@ -148,6 +190,8 @@ class ADCSTab(QWidget):
             "initial_tumble_deg_s": self.tumble.value(),
             "magnetorquer_max_dipole_am2": self.dipole.value(),
             "rw_max_momentum_nms": self.rw_max.value(),
+            "rw_max_torque_nm": self.rw_torque.value(),
+            "slew_angle_deg": self.slew_angle.value(),
             "n_orbits": self.n_orbits.value(),
             "mode": _MODE_KEYS[self.mode.currentIndex()],
         })
@@ -157,5 +201,39 @@ class ADCSTab(QWidget):
         return adcs_params
 
     def _emit_params(self):
-        self.status.setText(f"Simulation updated for {self.mission_combo.currentText()}.")
+        self.status.setStyleSheet("color: #cfd6e4;")
+        self.status.setText(f"Running simulation for "
+                            f"{self.mission_combo.currentText()}…")
+        self.status.repaint()
         self.parametersChanged.emit(self.get_params())
+
+    # -- result feedback (called by the controller after each run) --------
+    def show_run_summary(self, result: dict):
+        """One-line result summary under the Run button."""
+        parts = []
+        acquire = result.get("t_acquire_h")
+        mode = result.get("mode", "")
+        if mode == "slew" and result.get("slew"):
+            s = result["slew"]
+            settle = s.get("settle_time_s")
+            parts.append(f"slew settled in {settle:.0f} s" if settle is not None
+                         else "slew did not settle in the window")
+            parts.append(f"peak wheel momentum {s['peak_wheel_nms']:.2f} N·m·s")
+        else:
+            if acquire is not None:
+                parts.append(f"target acquired after {acquire:.2f} h")
+            elif mode in ("full", "detumble"):
+                parts.append("still detumbling at the end of the run — "
+                             "try more orbits")
+            err = result.get("attitude_error_deg")
+            if err is not None and len(err) and mode != "detumble":
+                parts.append(f"final pointing error {err[-1]:.3f}°")
+            om = result.get("omega_mag_deg_s")
+            if om is not None and len(om) and mode in ("detumble", "full"):
+                parts.append(f"final rate {om[-1]:.2f} °/s")
+        self.status.setStyleSheet("color: #6fae6f;")
+        self.status.setText("Done: " + ";  ".join(parts))
+
+    def show_run_error(self, message: str):
+        self.status.setStyleSheet("color: #e06c75;")
+        self.status.setText(f"Simulation failed: {message}")

@@ -26,6 +26,9 @@ which the simulation evaluates things each time step.
 | 08 | [The simulation loop](08-simulation-loop.md) | How one time step ties it all together (Sec. 10) |
 | 09 | [Verification](09-verification.md) | Framework ↔ code cross-check, hand-calc anchors, known approximations |
 | 10 | [Tutorial: create a mission](10-tutorial-create-mission.md) | Add a satellite / orbit / mission — inputs vs computed |
+| 11 | [Momentum budget & hierarchy](11-momentum-budget.md) | Cyclic vs secular momentum, wheel/torquer sizing, lecture cross-check |
+| 12 | [J2 secular drift rates](12-j2-secular-rates.md) | RAAN/apsidal drift, the 63.4° critical inclination, justifying the fixed-orbit assumption |
+| 13 | [Attitude determination](13-attitude-determination.md) | Gyro + star tracker, complementary filter, knowledge vs control error, the pointing budget |
 
 ## The simulation in one paragraph
 

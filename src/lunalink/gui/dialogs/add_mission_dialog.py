@@ -11,8 +11,9 @@ from ...simulation.defaults import load_simulation_defaults
 from ...simulation.repositories.satellite_repository import SatelliteRepository
 
 _MODE_LABELS = ["Detumble (B-dot)", "Sun-pointing (PD + wheels)",
-                "Full mission (detumble → pointing)"]
-_MODE_KEYS = ["detumble", "sun_pointing", "full"]
+                "Full mission (detumble → pointing)",
+                "Slew (rest-to-rest)"]
+_MODE_KEYS = ["detumble", "sun_pointing", "full", "slew"]
 
 
 def _spin(minimum, maximum, value, decimals=1, step=1.0, suffix=""):

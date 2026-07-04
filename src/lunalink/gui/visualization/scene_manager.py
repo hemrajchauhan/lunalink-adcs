@@ -93,7 +93,8 @@ class SceneManager:
 
         self._render_orbits()
         self._build_labels()
-        self._enable_picking()
+        # Click-to-inspect text overlay intentionally disabled: use the Objects
+        # tab (double-click to focus) to inspect an object instead.
         self.focus_on_body("Earth")
 
     def reload_scene(self):
@@ -127,6 +128,34 @@ class SceneManager:
             self.child_scale[obj.name] = VisualizationTransform.child_orbit_scale(
                 obj.orbit.semi_major_axis_m, obj.orbit.eccentricity,
                 p_disp, isinstance(obj, Satellite))
+        self._push_moons_outside_satellites()
+
+    def _push_moons_outside_satellites(self):
+        """When a moon and a satellite share a parent, a highly eccentric
+        satellite orbit (e.g. a Molniya) can reach farther out than the moon,
+        so the two orbit lines cross. Rescale each such moon so its closest
+        approach clears the farthest satellite apogee (matches reality: the
+        satellite stays well inside the lunar orbit)."""
+        parents = {o.parent for o in self.system.all_objects()
+                   if o.parent and o.parent != "Sun" and o.orbit is not None}
+        for parent in parents:
+            children = [o for o in self.system.all_objects()
+                        if o.parent == parent and o.orbit is not None]
+            sats = [o for o in children if isinstance(o, Satellite)]
+            moons = [o for o in children if not isinstance(o, Satellite)]
+            if not sats or not moons:
+                continue
+            max_sat_apogee = max(
+                o.orbit.semi_major_axis_m * (1.0 + o.orbit.eccentricity)
+                * self.child_scale.get(o.name, 0.0) for o in sats)
+            needed = max_sat_apogee * config.MOON_SATELLITE_CLEARANCE
+            for moon in moons:
+                perigee_m = moon.orbit.semi_major_axis_m * (1.0 - moon.orbit.eccentricity)
+                if perigee_m <= 0:
+                    continue
+                perigee_disp = perigee_m * self.child_scale.get(moon.name, 0.0)
+                if perigee_disp < needed:
+                    self.child_scale[moon.name] = needed / perigee_m
 
     def _update_positions(self, time_s):
         world = self.system.compute_positions(time_s)

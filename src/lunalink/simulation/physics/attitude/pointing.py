@@ -7,8 +7,14 @@ from .quaternion import quat_to_matrix, quat_multiply, quat_conjugate, normalize
 
 
 def quat_error(q_cmd: np.ndarray, q: np.ndarray) -> np.ndarray:
-    """Error quaternion q_e = q_cmd^{-1} (x) q (framework Eq. 35)."""
-    return normalize(quat_multiply(quat_conjugate(q_cmd), q))
+    """Error quaternion q_e = q_cmd^{-1} (x) q (framework Eq. 35).
+
+    The scalar part is kept non-negative (q and -q are the same rotation) so a
+    PD law fed with the vector part always commands the *shortest* rotation and
+    never "unwinds" the long way round.
+    """
+    q_e = normalize(quat_multiply(quat_conjugate(q_cmd), q))
+    return -q_e if q_e[3] < 0.0 else q_e
 
 
 def quat_to_euler321(q: np.ndarray) -> np.ndarray:

@@ -16,9 +16,15 @@ from .simulation.physics.constants import GM_SUN, GM_EARTH, AU_M  # noqa: F401
 # -----------------------------------------------------------------------------
 MAIN_WINDOW_WIDTH = 2_000
 MAIN_WINDOW_HEIGHT = 1_200
-LEFT_WINDOW_WIDTH = 1_400
-RIGHT_WINDOW_WIDTH = MAIN_WINDOW_WIDTH - LEFT_WINDOW_WIDTH
-CONTROL_PANEL_HEIGHT = 700
+# Three columns: 3D scene | controls + plots | read-only mission info.
+SCENE_WIDTH = 1_040
+CENTER_WIDTH = 640
+MISSION_INFO_WIDTH = 320
+# Backwards-compatible aliases (older code referred to these names).
+LEFT_WINDOW_WIDTH = SCENE_WIDTH
+RIGHT_WINDOW_WIDTH = CENTER_WIDTH
+# In the centre column the controls stay compact so the plots get the room.
+CONTROL_PANEL_HEIGHT = 380
 PLOT_PANEL_HEIGHT = MAIN_WINDOW_HEIGHT - CONTROL_PANEL_HEIGHT
 
 # -----------------------------------------------------------------------------
@@ -30,7 +36,9 @@ PLOT_PANEL_HEIGHT = MAIN_WINDOW_HEIGHT - CONTROL_PANEL_HEIGHT
 
 # Planet orbital radius (around the Sun): 1 AU -> this many scene units.
 # Larger value spreads the planets out (linear, so proportions stay real).
-AU_TO_UNITS = 120.0
+# Spread wide enough that Earth's satellite + Moon subsystem fits comfortably
+# between Venus and Mars without any orbit lines crossing.
+AU_TO_UNITS = 240.0
 
 # Body display radius = BODY_SIZE_COEFF * radius_m ** BODY_SIZE_POWER,
 # then clamped. A sub-linear power keeps the Sun from swallowing the planets
@@ -47,7 +55,12 @@ MOON_SEMI_MAJOR_FACTOR = 2.5
 
 # Satellites: perigee is drawn at this multiple of the parent's display radius
 # (just clear of the surface); the eccentric orbit shape is preserved.
-SATELLITE_PERIGEE_FACTOR = 1.25
+SATELLITE_PERIGEE_FACTOR = 1.1
+
+# When a moon and a satellite share a parent, keep the moon's closest approach
+# at least this multiple of the satellite's farthest point, so a moon never
+# crosses a satellite's (possibly very eccentric) orbit in the display.
+MOON_SATELLITE_CLEARANCE = 1.2
 
 # Satellites are physically metres-sized next to a planet; draw them as a small
 # fixed-size marker so they remain visible.
@@ -64,7 +77,7 @@ TIME_ACCEL_MAX = 5_184_000.0         # 60 days per real second
 
 # Starfield
 STAR_COUNT = 450
-STAR_FIELD_RADIUS = 6_000.0
+STAR_FIELD_RADIUS = 16_000.0
 STAR_COLOR = "white"
 STAR_POINT_SIZE = 1.5
 

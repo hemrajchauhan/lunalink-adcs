@@ -11,6 +11,14 @@ DARK_STYLESHEET = f"""
 QWidget {{
     background-color: #11151f;
 }}
+QToolTip {{
+    background-color: #f4f7fb;
+    color: #0d111a;
+    border: 1px solid {ACCENT};
+    border-radius: 4px;
+    padding: 5px 8px;
+    font-size: 12px;
+}}
 QMainWindow, QDialog {{
     background-color: #0d111a;
 }}

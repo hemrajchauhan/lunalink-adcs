@@ -53,6 +53,19 @@ class ADCSParams:
     pointing_initial_offset_deg: float = None
     tumble_axis: tuple = None
     pointing_initial_rate_deg_s: tuple = None
+    # Slew (rest-to-rest reorientation) scenario
+    slew_angle_deg: float = None
+    slew_axis: tuple = None
+    slew_window_s: float = None
+    # Attitude determination (gyro + star tracker + complementary filter)
+    estimator_enabled: bool = None
+    gyro_bias_deg_hr: tuple = None
+    gyro_noise_std_rad_s: float = None
+    star_tracker_noise_arcsec: float = None
+    star_tracker_interval_s: float = None
+    estimator_kp: float = None
+    estimator_ki: float = None
+    estimator_seed: int = None
 
     # -- derived --------------------------------------------------------
     def get_inertia(self) -> np.ndarray:

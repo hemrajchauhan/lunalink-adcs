@@ -54,18 +54,22 @@ class VisualizationTab(QWidget):
         form.addRow("", self.epoch_button)
         layout.addWidget(playback)
 
-        inspect = QGroupBox("Inspect")
+        inspect = QGroupBox("Inspect an Object")
         ilayout = QVBoxLayout(inspect)
-        ilayout.addWidget(QLabel("Click any body in the 3D view to read its\n"
-                                 "parent, distance, orbital speed and rotation period."))
+        tip = QLabel("Open the Objects tab and double-click any object to centre "
+                     "the camera on it and view its details.")
+        tip.setWordWrap(True)
+        ilayout.addWidget(tip)
         layout.addWidget(inspect)
 
         view = QGroupBox("Scene")
         vform = QVBoxLayout(view)
-        self.labels_check = QCheckBox("Show labels")
+        self.labels_check = QCheckBox("Show object names")
+        self.labels_check.setToolTip("Show or hide the text labels next to each body.")
         self.labels_check.setChecked(True)
         self.labels_check.toggled.connect(self.scene_manager.set_labels_visible)
         self.orbits_check = QCheckBox("Show orbit paths")
+        self.orbits_check.setToolTip("Show or hide the orbit trace lines.")
         self.orbits_check.setChecked(True)
         self.orbits_check.toggled.connect(self.scene_manager.set_orbits_visible)
         vform.addWidget(self.labels_check)

@@ -49,6 +49,14 @@ def quat_derivative(q: np.ndarray, omega: np.ndarray) -> np.ndarray:
     return 0.5 * omega_mat @ q
 
 
+def quat_from_axis_angle(axis: np.ndarray, angle_rad: float) -> np.ndarray:
+    """Scalar-last quaternion for a rotation of ``angle_rad`` about ``axis``."""
+    a = np.asarray(axis, dtype=float)
+    a = a / np.linalg.norm(a)
+    half = angle_rad / 2.0
+    return normalize(np.array([*(a * np.sin(half)), np.cos(half)]))
+
+
 def matrix_to_quat(R: np.ndarray) -> np.ndarray:
     """Inverse of :func:`quat_to_matrix` (returns the conjugate of the standard
     Shepperd result so it matches the body<-inertial convention of Eq. 12)."""
