@@ -20,14 +20,14 @@ _MODE_TOOLTIP = (
 )
 
 
-def _spin(minimum, maximum, value, decimals=2, step=1.0, suffix=""):
+def _spin(minimum, maximum, value, decimals=2, step=1.0):
+    """Numeric input. Units belong in the row label, not inside the editable
+    field, so the number can be selected and typed over directly."""
     box = QDoubleSpinBox()
     box.setRange(minimum, maximum)
     box.setDecimals(decimals)
     box.setSingleStep(step)
     box.setValue(value)
-    if suffix:
-        box.setSuffix(suffix)
     return box
 
 
@@ -59,35 +59,35 @@ class ADCSTab(QWidget):
 
         sc = QGroupBox("Spacecraft and Initial State")
         sc_form = QFormLayout(sc)
-        self.ix = _spin(1, 100000, 135, step=10, suffix=" kg·m²")
-        self.iy = _spin(1, 100000, 208, step=10, suffix=" kg·m²")
-        self.iz = _spin(1, 100000, 260, step=10, suffix=" kg·m²")
-        self.tumble = _spin(0, 60, 10, decimals=1, step=0.5, suffix=" °/s")
+        self.ix = _spin(1, 100000, 135, step=10)
+        self.iy = _spin(1, 100000, 208, step=10)
+        self.iz = _spin(1, 100000, 260, step=10)
+        self.tumble = _spin(0, 60, 10, decimals=1, step=0.5)
         for box, axis in ((self.ix, "X"), (self.iy, "Y"), (self.iz, "Z")):
             box.setToolTip(f"Resistance to rotation about the body {axis} axis "
                            "(filled from the spacecraft mass and dimensions).")
         self.tumble.setToolTip("How fast the spacecraft is spinning at the start "
                                "of the run.")
-        sc_form.addRow("Moment of inertia (X axis)", self.ix)
-        sc_form.addRow("Moment of inertia (Y axis)", self.iy)
-        sc_form.addRow("Moment of inertia (Z axis)", self.iz)
-        sc_form.addRow("Initial tumble rate", self.tumble)
+        sc_form.addRow("Moment of inertia X [kg·m²]", self.ix)
+        sc_form.addRow("Moment of inertia Y [kg·m²]", self.iy)
+        sc_form.addRow("Moment of inertia Z [kg·m²]", self.iz)
+        sc_form.addRow("Initial tumble rate [°/s]", self.tumble)
         layout.addWidget(sc)
 
         act = QGroupBox("Actuators")
         act_form = QFormLayout(act)
-        self.dipole = _spin(1, 500, 50, decimals=1, step=5, suffix=" A·m²")
-        self.rw_max = _spin(0.1, 200, 4, decimals=1, step=0.5, suffix=" N·m·s")
-        self.rw_torque = _spin(0.001, 5, 0.05, decimals=3, step=0.01, suffix=" N·m")
+        self.dipole = _spin(1, 500, 50, decimals=1, step=5)
+        self.rw_max = _spin(0.1, 200, 4, decimals=1, step=0.5)
+        self.rw_torque = _spin(0.001, 5, 0.05, decimals=3, step=0.01)
         self.dipole.setToolTip("Maximum magnetic dipole the torque rods can produce "
                                "(used for detumbling and wheel desaturation).")
         self.rw_max.setToolTip("Maximum angular momentum each reaction wheel can "
                                "store before it saturates and must be desaturated.")
         self.rw_torque.setToolTip("Maximum torque each reaction wheel can apply. "
                                   "Limits how aggressively the spacecraft can turn.")
-        act_form.addRow("Magnetorquer strength", self.dipole)
-        act_form.addRow("Reaction-wheel capacity", self.rw_max)
-        act_form.addRow("Reaction-wheel max torque", self.rw_torque)
+        act_form.addRow("Magnetorquer strength [A·m²]", self.dipole)
+        act_form.addRow("Reaction-wheel capacity [N·m·s]", self.rw_max)
+        act_form.addRow("Reaction-wheel max torque [N·m]", self.rw_torque)
         layout.addWidget(act)
 
         scen = QGroupBox("Scenario")
@@ -96,15 +96,15 @@ class ADCSTab(QWidget):
         self.mode.addItems(_MODE_LABELS)
         self.mode.setToolTip(_MODE_TOOLTIP)
         self.mode.currentIndexChanged.connect(self._on_mode_changed)
-        self.n_orbits = _spin(1, 20, 3, decimals=0, step=1, suffix=" orbits")
+        self.n_orbits = _spin(1, 20, 3, decimals=0, step=1)
         self.n_orbits.setToolTip("How many orbits the simulation covers "
                                  "(not used for a slew, which is a short event).")
-        self.slew_angle = _spin(1, 180, 90, decimals=0, step=5, suffix=" °")
+        self.slew_angle = _spin(1, 180, 90, decimals=0, step=5)
         self.slew_angle.setToolTip("Angle of the rest-to-rest reorientation "
                                    "(only used in Slew maneuver mode).")
         scen_form.addRow("Control mode", self.mode)
-        scen_form.addRow("Simulated duration", self.n_orbits)
-        scen_form.addRow("Slew angle", self.slew_angle)
+        scen_form.addRow("Simulated duration [orbits]", self.n_orbits)
+        scen_form.addRow("Slew angle [°]", self.slew_angle)
         layout.addWidget(scen)
 
         self.run_button = QPushButton("Run Simulation")
@@ -223,8 +223,8 @@ class ADCSTab(QWidget):
             if acquire is not None:
                 parts.append(f"target acquired after {acquire:.2f} h")
             elif mode in ("full", "detumble"):
-                parts.append("still detumbling at the end of the run — "
-                             "try more orbits")
+                parts.append("still detumbling at the end of the run "
+                             "(try more orbits)")
             err = result.get("attitude_error_deg")
             if err is not None and len(err) and mode != "detumble":
                 parts.append(f"final pointing error {err[-1]:.3f}°")

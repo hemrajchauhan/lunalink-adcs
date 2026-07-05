@@ -1,4 +1,4 @@
-# 10 — Tutorial: Create a Satellite, Orbit & Mission
+# 10 - Tutorial: Create a Satellite, Orbit & Mission
 
 A practical guide to setting up your own scenario. There are two ways to do
 everything: the **GUI** (Objects tab → right-click → Add; Mission tab → Add
@@ -17,13 +17,13 @@ Bodies* → *Add Celestial Body…*
 
 | Parameter | You provide | Units | Computed for you |
 |-----------|:-----------:|-------|------------------|
-| name, color | ✅ | — | |
+| name, color | ✅ | - | |
 | radius_m | ✅ | m (dialog: km) | display size (scaled) |
 | axial_tilt_deg, rotation_period_h | ✅ | deg, h | spin animation |
 | has_ring | ✅ | bool | |
 | parent | ✅ | body name / null | which `GM` to use |
 | orbit.semi_major_axis_m | ✅ | m (dialog: AU) | |
-| orbit.eccentricity, inclination_deg, raan_deg, arg_periapsis_deg, mean_anomaly_epoch_deg | ✅ | — / deg | |
+| orbit.eccentricity, inclination_deg, raan_deg, arg_periapsis_deg, mean_anomaly_epoch_deg | ✅ | - / deg | |
 | **position over time** | | | ✅ Kepler propagation |
 
 The Sun has `parent: null` and `orbit: null` (it sits at the origin).
@@ -55,7 +55,7 @@ The Sun has `parent: null` and `orbit: null` (it sits at the origin).
 
 | Parameter | You provide | Units | Computed for you |
 |-----------|:-----------:|-------|------------------|
-| name, color | ✅ | — | |
+| name, color | ✅ | - | |
 | mass_kg | ✅ | kg | |
 | dimensions_m `[L,W,H]` | ✅ | m | **inertia tensor** `box_inertia` (Eq. 16) |
 | parent | ✅ | body name | parent `GM` for propagation |
@@ -79,7 +79,7 @@ the same or different satellites.
 
 ```json
 {
-    "name": "MySat — Sun-pointing",
+    "name": "MySat - Sun-pointing",
     "satellite": "MySat",
     "description": "PD sun-pointing with reaction wheels",
     "simulation": {
@@ -110,7 +110,7 @@ You only specify what differs.
 | `rw_max_momentum_nms`, `rw_max_torque_nm` | wheel limits | JSON default |
 | `residual_dipole_am2`, `srp_area_m2`, `reflectance`, `drag_coeff`, `cp_offset_m` | disturbance geometry | JSON default |
 | `natural_freq`, `damping`, `desat_gain`, `detumble_exit_deg_s` | control tuning | JSON default |
-| `bdot_gain_fraction`, `desat_trigger_fraction`, `momentum_dump_factor`, `acquire_threshold_deg`, `drag_cutoff_altitude_m`, `pointing_initial_offset_deg`, `tumble_axis`, `pointing_initial_rate_deg_s` | algorithm constants | JSON default |
+| `bdot_gain_fraction`, `desat_trigger_fraction`, `acquire_threshold_deg`, `drag_cutoff_altitude_m`, `pointing_initial_offset_deg`, `tumble_axis`, `pointing_initial_rate_deg_s` | algorithm constants | JSON default |
 
 ### Computed automatically when you run (never entered by hand)
 

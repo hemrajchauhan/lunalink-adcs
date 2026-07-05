@@ -1,21 +1,22 @@
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QLabel, QGroupBox,
-    QComboBox, QPushButton, QMessageBox,
+    QComboBox, QPushButton, QMessageBox, QScrollArea,
 )
-from PyQt6.QtCore import pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal
 
 from ....simulation.repositories.satellite_repository import SatelliteRepository
 from ....simulation.repositories.mission_repository import MissionRepository
 from ...dialogs.add_mission_dialog import AddMissionDialog
+from ..mission_info_panel import MissionInfoPanel
 
 
 class MissionTab(QWidget):
-    """Choose a mission and launch its ADCS simulation. The read-only details
-    (orbit, spacecraft sizing, simulation settings) are shown in the Mission
-    Details panel on the right, which follows the selection made here."""
+    """Choose a mission and launch its ADCS simulation. The selection sits at
+    the top; the read-only mission details (orbit, spacecraft sizing,
+    simulation settings) follow below in the same scrollable column."""
 
     simulateRequested = pyqtSignal(str)   # mission name
-    missionChanged = pyqtSignal(str)      # mission name (drives the info panel)
+    missionChanged = pyqtSignal(str)      # mission name
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -23,7 +24,20 @@ class MissionTab(QWidget):
         self._reload_missions()
 
     def _build_ui(self):
-        layout = QVBoxLayout(self)
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+
+        # One scrollable column: Selected Mission on top, details below.
+        content = QWidget()
+        layout = QVBoxLayout(content)
+        layout.setSpacing(8)
+
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setWidget(content)
+        outer.addWidget(scroll)
 
         sel = QGroupBox("Selected Mission")
         sform = QFormLayout(sel)
@@ -64,11 +78,9 @@ class MissionTab(QWidget):
         self.run_button.clicked.connect(self._run)
         layout.addWidget(self.run_button)
 
-        hint = QLabel("Full orbit, spacecraft and simulation details are shown "
-                      "in the Mission Details panel on the right.")
-        hint.setWordWrap(True)
-        hint.setStyleSheet("color: #8a93a6; padding: 2px;")
-        layout.addWidget(hint)
+        # Read-only mission details, following the selection above.
+        self.info_panel = MissionInfoPanel()
+        layout.addWidget(self.info_panel)
 
         layout.addStretch()
 
@@ -100,6 +112,7 @@ class MissionTab(QWidget):
         self.desc_label.setText(mission.description or "No description")
         self.sat_label.setText(mission.satellite)
         self.parent_label.setText((sat.parent if sat else None) or "Unknown")
+        self.info_panel.update_for_mission(name)
         self.missionChanged.emit(name)
 
     def _add_mission(self):

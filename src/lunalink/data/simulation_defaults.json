@@ -1,6 +1,6 @@
 {
     "mode": "sun_pointing",
-    "n_orbits": 3.0,
+    "n_orbits": 4.0,
     "dt_s": 8.0,
 
     "initial_tumble_deg_s": 10.0,

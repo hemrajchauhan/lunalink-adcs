@@ -1,7 +1,7 @@
-# 08 — The Simulation Loop (Framework Sec. 10)
+# 08 - The Simulation Loop (Framework Sec. 10)
 
-This is where everything from chapters 02–07 comes together. One function —
-`simulator.simulate(params)` — runs the whole thing.
+This is where everything from chapters 02–07 comes together. One function -
+`simulator.simulate(params)` - runs the whole thing.
 
 **Code:** `simulation/simulator.py`
 
@@ -12,7 +12,7 @@ state x = [ q (4),  ω (3),  h_w (3) ]
 ```
 
 `params` is an `ADCSParams` built from a satellite (mass, dimensions, orbit) and
-a mission's simulation parameters (mode, actuators, gains, solver constants) —
+a mission's simulation parameters (mode, actuators, gains, solver constants) -
 all sourced from JSON (see [10-tutorial](10-tutorial-create-mission.md)).
 
 ## Setup (before the loop)
@@ -32,9 +32,11 @@ all sourced from JSON (see [10-tutorial](10-tutorial-create-mission.md)).
              field B (Eq. 27);  density ρ (Eq. 28)
 2. Rotate r, ŝ, B into body axes via R(q)                      (Eq. 12)
 3. Disturbances: T_gg + T_srp + T_mag + T_aero                 (Eq. 19–22)
-4. Control:  B-dot (Eq. 33)  OR  PD (Eq. 35) + desat (Eq. 37); clip to limits
+4. Control:  B-dot (Eq. 33)  OR  PD (Eq. 35) + desat (Eq. 37); torque clipped
+             to the wheel limit, ḣ_w limited so |h_w| stays within capacity
 5. Dynamics:  ω̇ (Eq. 18);  kinematics q̇ (Eq. 13);  wheels ḣ_w
-6. Integrate (RK4), re-normalise q, clip/dump wheel momentum
+6. Integrate (RK4), re-normalise q, advance h_w with the same limited ḣ_w
+   (momentum only ever leaves the wheels through the magnetic desat torque)
 ```
 
 The control torque and disturbances are held constant across the four RK4
@@ -58,7 +60,7 @@ or a mission for higher fidelity.
 | `wheel_momentum_mag_nms` | Reaction-Wheel Momentum | build-up + desaturation saw-tooth |
 | `T_gg/srp/mag/aero_nm`, `disturbance_nm` | Disturbance Torque | torque vs orbit position |
 | `angular_momentum_nms` | Angular Momentum | `‖H‖` integrator check |
-| `euler_deg`, `radius_km`, `eclipse`, `t_acquire_h`, `period_h` | — | reporting |
+| `euler_deg`, `radius_km`, `eclipse`, `t_acquire_h`, `period_h` | - | reporting |
 
 ## GUI vs headless
 
@@ -66,6 +68,6 @@ or a mission for higher fidelity.
   runs `simulate()` and pushes the result to the plot tabs (only on **Run**,
   never on startup).
 - **Headless:** `python -m lunalink.main_simulation` runs a mission and writes
-  PNGs to `output/` — the "must run headless" deliverable.
+  PNGs to `output/` - the "must run headless" deliverable.
 
-Next: [09 — Verification](09-verification.md).
+Next: [09 - Verification](09-verification.md).

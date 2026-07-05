@@ -8,7 +8,7 @@ from . import style
 
 class MomentumBudgetTab(BasePlotTab):
 
-    TITLE = "Disturbance momentum demand — wiggle is cyclic, climb is secular"
+    TITLE = "Disturbance momentum demand: wiggle is cyclic, climb is secular"
     LEFT_LABEL = ("|∫ T_dist dt|", "N·m·s")
 
     def update_plot(self, result):
@@ -42,8 +42,8 @@ class MomentumBudgetTab(BasePlotTab):
             ("Minimum dump dipole (best case, ⊥ B)",
              style.fmt(budget["dump_dipole_am2"], "A·m²"), style.GOOD),
         ]
-        note = ("Cyclic torque is borrowed and returned every orbit — it sizes "
-                "the wheels. Secular torque never averages out — it must be "
-                "dumped against the geomagnetic field, which sizes the "
+        note = ("Cyclic torque is borrowed and returned every orbit, so it "
+                "sizes the wheels. Secular torque never averages out; it must "
+                "be dumped against the geomagnetic field, which sizes the "
                 "magnetorquers.")
         return style.summary_html("Momentum budget", rows, note)

@@ -1,5 +1,5 @@
-"""Total angular momentum |H| = |I·ω + h_wheels| — the integrator/consistency
-check — alongside the wheel share of that momentum."""
+"""Total angular momentum |H| = |I·ω + h_wheels| (the integrator/consistency
+check) alongside the wheel share of that momentum."""
 import numpy as np
 
 from .base_plot_tab import BasePlotTab

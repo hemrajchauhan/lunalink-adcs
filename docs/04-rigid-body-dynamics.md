@@ -1,4 +1,4 @@
-# 04 — Rigid-Body Dynamics (Framework Sec. 5)
+# 04 - Rigid-Body Dynamics (Framework Sec. 5)
 
 How torques change the spacecraft's rotation rate.
 
@@ -19,7 +19,7 @@ Iz = m/12 (a_x² + a_y²)
 
 This is **computed**, not entered by the user: the user supplies `mass_kg` and
 `dimensions_m` (in `satellites.json`), and the inertia tensor falls out. Real
-arrays/tanks would shift these — a ±20 % sensitivity sweep is a good exercise.
+arrays/tanks would shift these - a ±20 % sensitivity sweep is a good exercise.
 
 ## 4.2 Euler's equation with reaction wheels (Eq. 17–18)
 
@@ -67,7 +67,7 @@ With zero external torque, `‖H‖` must be constant and rotational kinetic ene
 | Ix, Iy, Iz (box) | 135, 208, 260 kg·m² | 135.4, 208.3, 260.4 | ✅ |
 | `‖H‖` drift over 1 orbit, no torque | ~0 (must be flat) | 0.03 % | ✅ |
 
-The minimum-inertia axis is `x` (Ix smallest) — the axis gravity-gradient tries
+The minimum-inertia axis is `x` (Ix smallest) - the axis gravity-gradient tries
 to align with local vertical, consistent with the framework note.
 
-Next: [05 — Environment models](05-environment-models.md).
+Next: [05 - Environment models](05-environment-models.md).

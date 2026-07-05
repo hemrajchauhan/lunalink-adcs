@@ -6,9 +6,9 @@ from .base_plot_tab import BasePlotTab
 from . import style
 
 _TITLES = {
-    "slew": "Slew attitude error — angle to the commanded attitude",
+    "slew": "Slew attitude error: angle to the commanded attitude",
     "detumble": "Attitude error vs the Sun line (uncontrolled during detumble)",
-    "full": "Attitude error — detumble, then Sun acquisition and hold",
+    "full": "Attitude error: detumble, then Sun acquisition and hold",
     "sun_pointing": "Sun-pointing attitude error",
 }
 

@@ -18,14 +18,13 @@ from ...config import AU_M
 from ...simulation.objects import CelestialBody, Satellite, OrbitElements
 
 
-def _spin(minimum, maximum, value, decimals=3, step=1.0, suffix=""):
+def _spin(minimum, maximum, value, decimals=3, step=1.0):
+    """Numeric input; units go in the row label, not in the editable field."""
     box = QDoubleSpinBox()
     box.setRange(minimum, maximum)
     box.setDecimals(decimals)
     box.setSingleStep(step)
     box.setValue(value)
-    if suffix:
-        box.setSuffix(suffix)
     return box
 
 
@@ -80,44 +79,44 @@ class AddObjectDialog(QDialog):
         page = QWidget()
         form = QFormLayout(page)
 
-        self.body_radius = _spin(1, 2_000_000, 6371, decimals=1, step=100, suffix=" km")
-        self.body_tilt = _spin(0, 360, 23.4, decimals=2, suffix=" °")
-        self.body_rotation = _spin(-100000, 100000, 24, decimals=2, suffix=" h")
+        self.body_radius = _spin(1, 2_000_000, 6371, decimals=1, step=100)
+        self.body_tilt = _spin(0, 360, 23.4, decimals=2)
+        self.body_rotation = _spin(-100000, 100000, 24, decimals=2)
         self.body_has_ring = QCheckBox("Has ring")
 
         self.body_parent = QComboBox()
-        self.body_parent.addItem("(none — independent)")
+        self.body_parent.addItem("(none, independent)")
         self.body_parent.addItems(self._parent_body_names)
 
-        self.body_distance = _spin(0, 1000, 1.0, decimals=4, step=0.1, suffix=" AU")
+        self.body_distance = _spin(0, 1000, 1.0, decimals=4, step=0.1)
         self.body_ecc = _spin(0, 0.99, 0.0, decimals=4, step=0.01)
-        self.body_incl = _spin(0, 180, 0.0, decimals=2, suffix=" °")
-        self.body_raan = _spin(0, 360, 0.0, decimals=2, suffix=" °")
-        self.body_argp = _spin(0, 360, 0.0, decimals=2, suffix=" °")
-        self.body_anom = _spin(0, 360, 0.0, decimals=2, suffix=" °")
+        self.body_incl = _spin(0, 180, 0.0, decimals=2)
+        self.body_raan = _spin(0, 360, 0.0, decimals=2)
+        self.body_argp = _spin(0, 360, 0.0, decimals=2)
+        self.body_anom = _spin(0, 360, 0.0, decimals=2)
 
-        form.addRow("Radius", self.body_radius)
-        form.addRow("Axial tilt", self.body_tilt)
-        form.addRow("Rotation period", self.body_rotation)
+        form.addRow("Radius [km]", self.body_radius)
+        form.addRow("Axial tilt [°]", self.body_tilt)
+        form.addRow("Rotation period [h]", self.body_rotation)
         form.addRow("", self.body_has_ring)
         form.addRow(QLabel("<b>Orbit (around parent)</b>"))
         form.addRow("Parent", self.body_parent)
-        form.addRow("Distance / semi-major axis", self.body_distance)
+        form.addRow("Semi-major axis [AU]", self.body_distance)
         form.addRow("Eccentricity", self.body_ecc)
-        form.addRow("Inclination", self.body_incl)
-        form.addRow("RAAN", self.body_raan)
-        form.addRow("Arg. of periapsis", self.body_argp)
-        form.addRow("Mean anomaly @ epoch", self.body_anom)
+        form.addRow("Inclination [°]", self.body_incl)
+        form.addRow("RAAN [°]", self.body_raan)
+        form.addRow("Arg. of periapsis [°]", self.body_argp)
+        form.addRow("Mean anomaly at epoch [°]", self.body_anom)
         return page
 
     def _build_satellite_page(self):
         page = QWidget()
         form = QFormLayout(page)
 
-        self.sat_mass = _spin(0.1, 100000, 500, decimals=1, step=10, suffix=" kg")
-        self.sat_length = _spin(0.01, 1000, 2.0, decimals=2, suffix=" m")
-        self.sat_width = _spin(0.01, 1000, 1.5, decimals=2, suffix=" m")
-        self.sat_height = _spin(0.01, 1000, 1.0, decimals=2, suffix=" m")
+        self.sat_mass = _spin(0.1, 100000, 500, decimals=1, step=10)
+        self.sat_length = _spin(0.01, 1000, 2.0, decimals=2)
+        self.sat_width = _spin(0.01, 1000, 1.5, decimals=2)
+        self.sat_height = _spin(0.01, 1000, 1.0, decimals=2)
 
         self.sat_parent = QComboBox()
         self.sat_parent.addItems(self._parent_body_names)
@@ -125,25 +124,25 @@ class AddObjectDialog(QDialog):
         if "Earth" in self._parent_body_names:
             self.sat_parent.setCurrentText("Earth")
 
-        self.sat_perigee = _spin(0, 5_000_000, 500, decimals=1, step=50, suffix=" km")
+        self.sat_perigee = _spin(0, 5_000_000, 500, decimals=1, step=50)
         self.sat_ecc = _spin(0, 0.99, 0.0, decimals=4, step=0.01)
-        self.sat_incl = _spin(0, 180, 63.4, decimals=2, suffix=" °")
-        self.sat_raan = _spin(0, 360, 0.0, decimals=2, suffix=" °")
-        self.sat_argp = _spin(0, 360, 0.0, decimals=2, suffix=" °")
-        self.sat_anom = _spin(0, 360, 0.0, decimals=2, suffix=" °")
+        self.sat_incl = _spin(0, 180, 63.4, decimals=2)
+        self.sat_raan = _spin(0, 360, 0.0, decimals=2)
+        self.sat_argp = _spin(0, 360, 0.0, decimals=2)
+        self.sat_anom = _spin(0, 360, 0.0, decimals=2)
 
-        form.addRow("Mass", self.sat_mass)
-        form.addRow("Length", self.sat_length)
-        form.addRow("Width", self.sat_width)
-        form.addRow("Height", self.sat_height)
+        form.addRow("Mass [kg]", self.sat_mass)
+        form.addRow("Length [m]", self.sat_length)
+        form.addRow("Width [m]", self.sat_width)
+        form.addRow("Height [m]", self.sat_height)
         form.addRow(QLabel("<b>Orbit (around parent)</b>"))
         form.addRow("Parent body", self.sat_parent)
-        form.addRow("Perigee altitude", self.sat_perigee)
+        form.addRow("Perigee altitude [km]", self.sat_perigee)
         form.addRow("Eccentricity", self.sat_ecc)
-        form.addRow("Inclination", self.sat_incl)
-        form.addRow("RAAN", self.sat_raan)
-        form.addRow("Arg. of periapsis", self.sat_argp)
-        form.addRow("Mean anomaly @ epoch", self.sat_anom)
+        form.addRow("Inclination [°]", self.sat_incl)
+        form.addRow("RAAN [°]", self.sat_raan)
+        form.addRow("Arg. of periapsis [°]", self.sat_argp)
+        form.addRow("Mean anomaly at epoch [°]", self.sat_anom)
         return page
 
     # ------------------------------------------------------------------

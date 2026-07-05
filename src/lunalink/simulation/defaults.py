@@ -12,7 +12,7 @@ _DATA = Path(__file__).parents[1] / "data"
 # Minimal safety fallback if simulation_defaults.json is missing/unreadable.
 # (The JSON file is the source of truth; this only prevents a hard crash.)
 _SIMULATION_FALLBACK = {
-    "mode": "sun_pointing", "n_orbits": 3.0, "dt_s": 8.0,
+    "mode": "sun_pointing", "n_orbits": 4.0, "dt_s": 8.0,
     "initial_tumble_deg_s": 10.0, "rw_max_momentum_nms": 4.0,
     "rw_max_torque_nm": 0.05, "magnetorquer_max_dipole_am2": 50.0,
     "residual_dipole_am2": 1.0, "srp_area_m2": 3.0, "reflectance": 0.5,

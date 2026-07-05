@@ -96,7 +96,7 @@ class ObjectsTab(QWidget):
             return
         self.current_object_name = object_name
         self.original_object_name = object_name
-        self.editor_label.setText(f"Properties — {object_name}")
+        self.editor_label.setText(f"Properties: {object_name}")
         self._populate_property_editor(properties)
 
     def _populate_property_editor(self, properties):

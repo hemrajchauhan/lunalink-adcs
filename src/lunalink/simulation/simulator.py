@@ -253,14 +253,16 @@ def simulate(params: ADCSParams) -> dict:
                 q_meas = determination.star_tracker_measurement(q, st_noise, rng)
                 q_hat, b_hat, _ = determination.star_update(
                     q_hat, b_hat, q_meas, params.estimator_kp,
-                    params.estimator_ki, st_interval)
+                    params.estimator_ki, st_interval,
+                    expected_rotation_rad=float(
+                        np.linalg.norm(w_meas - b_hat) * st_interval))
             logs["know_err"][k] = determination.knowledge_error_deg(q_hat, q)
             logs["b_hat_err"][k] = (np.linalg.norm(b_hat - b_true)
                                     / determination.DEG_PER_HR_TO_RAD_S)
 
         # Wheel momentum integrates the (already saturation-limited) wheel
         # torque. Momentum is only ever *removed* by the magnetic desaturation
-        # torque above — an instantaneous, torque-free dump would violate
+        # torque above; an instantaneous, torque-free dump would violate
         # conservation of angular momentum.
         hw = hw + hw_dot * dt
 
@@ -310,7 +312,7 @@ def simulate(params: ADCSParams) -> dict:
          "Magnetic": src_mom["mag"], "Aerodynamic": src_mom["aero"]},
         t_s, logs["radius_km"], period_s)
 
-    # J2 secular drift rates — justify the fixed-Keplerian-orbit assumption.
+    # J2 secular drift rates: justify the fixed-Keplerian-orbit assumption.
     j2_rates = orbit.j2_secular_rates(
         params.semi_major_axis_m, params.eccentricity, params.inclination_deg, mu)
     j2_rates["drift_over_run"] = orbit.drift_over_window(j2_rates, total_s)

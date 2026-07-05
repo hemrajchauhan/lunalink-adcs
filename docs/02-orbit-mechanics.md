@@ -1,4 +1,4 @@
-# 02 — Orbit Mechanics (Framework Sec. 3)
+# 02 - Orbit Mechanics (Framework Sec. 3)
 
 The orbit is evaluated **first** every time step, because position and velocity
 drive every disturbance, the Sun/eclipse geometry and the magnetic field.
@@ -20,7 +20,7 @@ P = 2π √(a³ / μ)                    orbital period     (s)
   `GM_BODIES`).
 - `mean_motion()` and `orbital_period_s()` live in `kepler.py`.
 - The `builders.py` helper `orbit_from_apsides()` turns perigee/apogee
-  **altitudes** into `(a, e)` — this is what the "Add satellite" dialog uses.
+  **altitudes** into `(a, e)` - this is what the "Add satellite" dialog uses.
 
 ## 2.2 Kepler propagation (Eq. 3–4)
 
@@ -34,7 +34,7 @@ M = E − e·sin E
 E_{k+1} = E_k − (E_k − e·sin E_k − M) / (1 − e·cos E_k)
 ```
 
-**Code:** `kepler.solve_kepler(M, e)` — wraps `M` to `[−π, π]`, uses a good
+**Code:** `kepler.solve_kepler(M, e)` - wraps `M` to `[−π, π]`, uses a good
 initial guess (`E = π` for high eccentricity), iterates to a 1e‑10 tolerance.
 This is exactly framework Eq. 3.
 
@@ -94,11 +94,11 @@ position(child) = position(parent) + position_in_parent_frame(child.orbit, μ_pa
 - **Period inconsistency (from the brief itself).** 500 × 36 000 km altitudes
   give `P ≈ 10.7 h`, not the stated "≈12 h". We keep the altitudes (so the
   disturbance, eclipse and link geometry use the real radius) and report
-  10.7 h — exactly the "spot the inconsistency" the framework flags (Sec. 1).
+  10.7 h - exactly the "spot the inconsistency" the framework flags (Sec. 1).
 - **Critical inclination.** At `i = 63.4°` the J2 drift of the argument of
   perigee is ~0 (Eq. 9), so we treat `ω` (arg. of perigee) as constant. We do
-  **not** propagate J2 secular drift — a deliberate simplification.
+  **not** propagate J2 secular drift - a deliberate simplification.
 - **Sun stationary.** Planets orbit a fixed Sun; we do not model the Sun's
   barycentric motion (negligible for this project).
 
-Next: [03 — Attitude & kinematics](03-attitude-kinematics.md).
+Next: [03 - Attitude & kinematics](03-attitude-kinematics.md).

@@ -58,12 +58,25 @@ class SceneManager:
         # Orientation axes with bright, readable labels (dark background fix).
         x_c, y_c, z_c = config.AXIS_COLORS
         try:
-            self.plotter.add_axes(
+            axes = self.plotter.add_axes(
                 xlabel="X", ylabel="Y", zlabel="Z",
                 x_color=x_c, y_color=y_c, z_color=z_c,
                 line_width=3, labels_off=False)
         except TypeError:
-            self.plotter.add_axes()
+            axes = self.plotter.add_axes()
+        # The default caption text is black and unreadable on the dark scene;
+        # recolour each axis label to match its axis and add a slight bold.
+        try:
+            captions = (axes.GetXAxisCaptionActor2D(),
+                        axes.GetYAxisCaptionActor2D(),
+                        axes.GetZAxisCaptionActor2D())
+            for caption, color in zip(captions, (x_c, y_c, z_c)):
+                text = caption.GetCaptionTextProperty()
+                text.SetColor(pv.Color(color).float_rgb)
+                text.SetBold(True)
+                text.SetShadow(False)
+        except AttributeError:
+            pass                                   # older VTK/pyvista API
 
     def _add_starfield(self):
         rng = np.random.default_rng(42)

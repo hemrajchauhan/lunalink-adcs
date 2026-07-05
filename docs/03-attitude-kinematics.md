@@ -1,4 +1,4 @@
-# 03 — Attitude Representation & Kinematics (Framework Sec. 4)
+# 03 - Attitude Representation & Kinematics (Framework Sec. 4)
 
 How we describe *which way the spacecraft is pointing* and how that orientation
 changes with the body rotation rate.
@@ -23,7 +23,7 @@ where `[a×]` is the cross-product (skew) matrix.
 > of `quat_to_matrix()` (it returns the conjugate of the standard Shepperd
 > result, because our `R(q)` uses the `−2q4[qᵥ×]` body←inertial convention).
 > Getting this wrong made the controller point *away* from the Sun in an early
-> version — it is now verified by a round-trip test.
+> version - it is now verified by a round-trip test.
 
 ## 3.2 Kinematic ODE (Eq. 13)
 
@@ -37,10 +37,10 @@ q̇ = ½ Ω(ω) q
         ⎣ −ω1  −ω2  −ω3   0 ⎦
 ```
 
-**Code:** `quaternion.quat_derivative(q, ω)` — integrated together with the
+**Code:** `quaternion.quat_derivative(q, ω)` - integrated together with the
 dynamics (Eq. 18) in the RK4 loop, and `q` is re-normalised every step.
 
-## 3.3 Euler angles — for reporting only (Eq. 14)
+## 3.3 Euler angles - for reporting only (Eq. 14)
 
 We convert `q → (roll, pitch, yaw)` (3‑2‑1) **only for plots**, never as the
 integration state (Euler angles hit gimbal lock at pitch = ±90°).
@@ -78,4 +78,4 @@ body←inertial DCM with +z along the Sun, and `matrix_to_quat()` converts it to
 - Round-trip `quat_to_matrix(matrix_to_quat(R)) == R` verified numerically.
 - `‖q‖ = 1` is enforced each step (re-normalisation), as the framework requires.
 
-Next: [04 — Rigid-body dynamics](04-rigid-body-dynamics.md).
+Next: [04 - Rigid-body dynamics](04-rigid-body-dynamics.md).

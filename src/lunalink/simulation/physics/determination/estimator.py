@@ -27,6 +27,10 @@ from ..attitude import (
     quat_derivative, quat_multiply, quat_conjugate, normalize,
 )
 
+# Residual angles above this are not "small"; the bias update is skipped
+# (about 20 degrees).
+BIAS_LEARN_MAX_ANGLE_RAD = 0.35
+
 
 def propagate_estimate(q_hat: np.ndarray, omega: np.ndarray, dt: float) -> np.ndarray:
     """RK4-propagate the estimated quaternion under a constant body rate."""
@@ -38,14 +42,18 @@ def propagate_estimate(q_hat: np.ndarray, omega: np.ndarray, dt: float) -> np.nd
 
 
 def star_update(q_hat: np.ndarray, b_hat: np.ndarray, q_meas: np.ndarray,
-                kp: float, ki: float, interval_s: float):
+                kp: float, ki: float, interval_s: float,
+                expected_rotation_rad: float = 0.0):
     """Apply one star-tracker correction to ``(q_hat, b_hat)``.
 
     ``kp`` is the fraction of the measured attitude error fed back into the
     estimate; ``ki`` is the (dimensionless) bias-learning gain and ``interval_s``
     is the time since the previous fix, used to convert the accumulated error
-    into a bias-rate estimate. Returns ``(q_hat, b_hat, a)`` where ``a`` is the
-    measured small-angle error (rad, body frame).
+    into a bias-rate estimate. ``expected_rotation_rad`` is the rotation the
+    body performs between fixes (|omega| * interval); the caller should supply
+    it so bias learning can be gated while tumbling. Returns
+    ``(q_hat, b_hat, a)`` where ``a`` is the measured small-angle error
+    (rad, body frame).
     """
     q_err = quat_multiply(quat_conjugate(q_hat), q_meas)
     if q_err[3] < 0.0:                         # shortest rotation (q and -q equal)
@@ -53,7 +61,14 @@ def star_update(q_hat: np.ndarray, b_hat: np.ndarray, q_meas: np.ndarray,
     a = 2.0 * q_err[:3]                         # rotation vector estimate -> fix
     dq = normalize(np.array([*(0.5 * kp * a), 1.0]))
     q_hat = normalize(quat_multiply(q_hat, dq))
-    b_hat = b_hat - ki * a / max(interval_s, 1e-9)
+    # Bias learning relies on the small-angle interpretation of ``a``. While
+    # the body tumbles fast, the rotation between fixes exceeds pi and wraps,
+    # so the residual can *look* small while the true drift is huge (aliasing)
+    # and would corrupt b_hat by orders of magnitude. Learn the bias only when
+    # both the residual AND the expected inter-fix rotation are small angles.
+    if (np.linalg.norm(a) <= BIAS_LEARN_MAX_ANGLE_RAD
+            and expected_rotation_rad <= BIAS_LEARN_MAX_ANGLE_RAD):
+        b_hat = b_hat - ki * a / max(interval_s, 1e-9)
     return q_hat, b_hat, a
 
 

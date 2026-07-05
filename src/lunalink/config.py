@@ -16,10 +16,10 @@ from .simulation.physics.constants import GM_SUN, GM_EARTH, AU_M  # noqa: F401
 # -----------------------------------------------------------------------------
 MAIN_WINDOW_WIDTH = 2_000
 MAIN_WINDOW_HEIGHT = 1_200
-# Three columns: 3D scene | controls + plots | read-only mission info.
-SCENE_WIDTH = 1_040
-CENTER_WIDTH = 640
-MISSION_INFO_WIDTH = 320
+# Two columns: 3D scene | controls + plots (mission details live inside the
+# Mission tab).
+SCENE_WIDTH = 1_150
+CENTER_WIDTH = 850
 # In the centre column the controls stay compact so the plots get the room.
 CONTROL_PANEL_HEIGHT = 380
 PLOT_PANEL_HEIGHT = MAIN_WINDOW_HEIGHT - CONTROL_PANEL_HEIGHT

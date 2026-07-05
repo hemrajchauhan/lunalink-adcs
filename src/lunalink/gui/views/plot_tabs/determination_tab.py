@@ -12,7 +12,7 @@ from . import style
 
 class DeterminationTab(BasePlotTab):
 
-    TITLE = "Pointing budget — knowledge vs control error"
+    TITLE = "Pointing budget: knowledge vs control error"
     LEFT_LABEL = ("Error", "°")
     LOG_Y = True
 
@@ -23,13 +23,14 @@ class DeterminationTab(BasePlotTab):
             "Gyro-bias estimate convergence",
             left=("Bias error", "°/h"), bottom=("Time", "h"))
         self.bias_plot.setXLink(self.plot)
-        self.layout().insertWidget(2, self.bias_plot, stretch=3)
+        # After the main plot, before the summary (inside the scroll page).
+        self.content_layout.insertWidget(1, self.bias_plot, stretch=3)
 
     def update_plot(self, result):
         det = result.get("determination")
         self.bias_plot.clear()
         if not det or "knowledge_error_deg" not in result:
-            style.set_title(self.plot, "Attitude determination — estimator "
+            style.set_title(self.plot, "Attitude determination: estimator "
                                        "disabled for this run")
             return
         t = result["t_h"]
@@ -50,6 +51,25 @@ class DeterminationTab(BasePlotTab):
         det = result.get("determination")
         if not det:
             return None
+        if result.get("mode") == "detumble":
+            # No pointing control is active, so the pointing budget does not
+            # apply; report only what the estimator itself achieves.
+            rows = [
+                ("Knowledge error (RMS, converged tail)",
+                 style.fmt(det["knowledge_rms_deg"], "°", 3)),
+                ("Gyro bias learned",
+                 f"{det['bias_initial_deg_hr']:.2f} → "
+                 f"{det['bias_final_deg_hr']:.3f} °/h"),
+                ("Star-tracker noise floor",
+                 style.fmt(det["star_tracker_noise_deg"], "°", 3)),
+            ]
+            note = ("During detumble the spacecraft is spinning fast and no "
+                    "pointing control is active, so the 0.1° pointing budget "
+                    "is not applicable. Bias learning pauses while the "
+                    "star-fix residuals are large and resumes as the rates "
+                    "drop.")
+            return style.summary_html("Attitude determination (detumble)",
+                                      rows, note)
         know_ok = det["knowledge_rms_deg"] <= det["knowledge_budget_deg"]
         total_ok = det["pointing_total_deg"] <= det["total_budget_deg"]
         rows = [
@@ -72,6 +92,6 @@ class DeterminationTab(BasePlotTab):
         ]
         note = ("The filter integrates the fast-but-drifting gyro and resets "
                 "the drift with each star-tracker fix, learning the gyro bias "
-                "from the repeated residuals — knowledge error settles at the "
+                "from the repeated residuals; knowledge error settles at the "
                 "star-tracker noise floor.")
         return style.summary_html("Attitude determination", rows, note)

@@ -1,6 +1,6 @@
-# 11 — The Momentum Budget & Disturbance Hierarchy
+# 11 - The Momentum Budget & Disturbance Hierarchy
 
-This chapter explains the two numbers that drive ADCS hardware sizing — and a
+This chapter explains the two numbers that drive ADCS hardware sizing - and a
 result where LunaLink behaves **differently** from the textbook circular-orbit
 case (TUM "The Pointing Problem" lecture, Part 3).
 
@@ -42,7 +42,7 @@ cyclic_swing      = max |H(t) − secular_trend(t)|              # the ± amplit
 
 `simulation/analysis.py → _secular_and_cyclic()`. (A naïve straight-line fit
 over a non-integer number of cycles leaks the cyclic part into the secular
-estimate — using complete orbits avoids that. Verified against a synthetic
+estimate - using complete orbits avoids that. Verified against a synthetic
 case to the digit.)
 
 ## Sizing outputs
@@ -75,17 +75,17 @@ DISTURBANCE HIERARCHY        peak       perigee     apogee    behaviour
 ## Two findings worth putting in the report
 
 **1. LunaLink is slew-driven, not storage-driven.** In the lecture, AI1's huge
-600 m² array gives a **±97 N·m·s** cyclic swing that dwarfs everything — its
+600 m² array gives a **±97 N·m·s** cyclic swing that dwarfs everything - its
 wheels are sized by *storage*. LunaLink is a small 500 kg box, so its
 disturbance swing is only **±0.13 N·m·s**; the wheel size (≈4 N·m·s) is set by
-the **90° slew**, not by disturbances. Same equations, opposite driver — a good
+the **90° slew**, not by disturbances. Same equations, opposite driver - a good
 illustration that the *numbers*, not the formulas, decide the architecture.
 
 **2. Eccentricity changes the secular/cyclic split.** The lecture's "gravity
 gradient is cyclic, SRP is secular" is exact for a **circular** orbit, where GG
 averages to zero each orbit. LunaLink's **e = 0.72** Molniya orbit concentrates
 GG (and magnetic, aero) into a sharp **1/R³ perigee spike** (perigee 6.3×10⁻⁵
-vs apogee 4.3×10⁻⁷ N·m) with no cancelling kick at apogee — so those torques are
+vs apogee 4.3×10⁻⁷ N·m) with no cancelling kick at apogee - so those torques are
 classified **mixed** (part cyclic, part secular). Only **SRP** is purely
 secular (constant in the Sun-fixed body frame). Our vector model captures this
 eccentric-orbit behaviour that the circular-case scalar formulas do not.
@@ -102,5 +102,5 @@ eccentric-orbit behaviour that the circular-case scalar formulas do not.
 | Size wheels for max(slew, storage) | `1.5 × max(cyclic, slew)` ≈ 4 N·m·s | ✅ |
 
 Back to the [README index](README.md) · see also
-[06 — Disturbance torques](06-disturbance-torques.md) and
-[07 — Actuators & control](07-actuators-and-control.md).
+[06 - Disturbance torques](06-disturbance-torques.md) and
+[07 - Actuators & control](07-actuators-and-control.md).

@@ -1,8 +1,13 @@
 """Headless ADCS simulation entry point.
 
-Runs the detumbling + sun-pointing simulation over >= 3 orbits and writes all
-result plots to ``output/`` without launching the GUI (required by the brief:
-"main_simulation.py - produces all plots without GUI. Must run headless.").
+Runs the two scenarios required by the project brief, each over 4 full orbits
+(about 43 hours, satisfying "at least 3 full orbits / at least 36 hours"):
+
+    1. B-dot magnetic detumbling from a 10 deg/s tumble
+    2. Quaternion-PD sun pointing with reaction wheels and desaturation
+
+and writes all result plots to ``output/`` without launching the GUI
+("main_simulation.py: produces all plots without GUI. Must run headless.").
 
 Usage:
     python -m lunalink.main_simulation
@@ -17,13 +22,20 @@ from .simulation.parameters import ADCSParams, default_params
 from .simulation.simulator import simulate
 
 
-def run(output_dir: str = "output", params: ADCSParams = None) -> dict:
+def run(output_dir: str = "output", params: ADCSParams = None,
+        prefix: str = "") -> dict:
+    """Simulate one scenario and write its plot set (prefixed PNG files)."""
     params = params or default_params(mode="full")
     result = simulate(params)
 
     out = Path(output_dir)
     out.mkdir(exist_ok=True)
     t = result["t_h"]
+
+    def save(fig, name):
+        fig.tight_layout()
+        fig.savefig(out / f"{prefix}{name}.png", dpi=130)
+        plt.close(fig)
 
     # 1. Angular velocity (detumbling)
     fig, ax = plt.subplots(figsize=(8, 4))
@@ -33,9 +45,9 @@ def run(output_dir: str = "output", params: ADCSParams = None) -> dict:
     if result.get("t_acquire_h") is not None:
         ax.axvline(result["t_acquire_h"], color="0.6", linestyle="--", label="acquired")
     ax.set(xlabel="Time [h]", ylabel="Angular velocity [°/s]",
-           title="Detumbling convergence")
+           title="Body angular velocity")
     ax.legend(); ax.grid(alpha=0.3)
-    fig.tight_layout(); fig.savefig(out / "angular_velocity.png", dpi=130); plt.close(fig)
+    save(fig, "angular_velocity")
 
     # 2. Attitude error
     fig, ax = plt.subplots(figsize=(8, 4))
@@ -43,7 +55,7 @@ def run(output_dir: str = "output", params: ADCSParams = None) -> dict:
     ax.set(xlabel="Time [h]", ylabel="Pointing error [°]",
            title="Sun-pointing attitude error")
     ax.grid(alpha=0.3)
-    fig.tight_layout(); fig.savefig(out / "attitude_error.png", dpi=130); plt.close(fig)
+    save(fig, "attitude_error")
 
     # 3. Reaction-wheel momentum
     fig, ax = plt.subplots(figsize=(8, 4))
@@ -56,7 +68,7 @@ def run(output_dir: str = "output", params: ADCSParams = None) -> dict:
     ax.set(xlabel="Time [h]", ylabel="Wheel momentum [N·m·s]",
            title="Reaction-wheel stored momentum")
     ax.legend(); ax.grid(alpha=0.3)
-    fig.tight_layout(); fig.savefig(out / "rw_momentum.png", dpi=130); plt.close(fig)
+    save(fig, "rw_momentum")
 
     # 4. Disturbance torque breakdown
     fig, ax = plt.subplots(figsize=(8, 4))
@@ -67,7 +79,7 @@ def run(output_dir: str = "output", params: ADCSParams = None) -> dict:
     ax.set(xlabel="Time [h]", ylabel="Disturbance torque [N·m]",
            title="Disturbance torque vs orbit position")
     ax.legend(); ax.grid(alpha=0.3, which="both")
-    fig.tight_layout(); fig.savefig(out / "disturbance_torque.png", dpi=130); plt.close(fig)
+    save(fig, "disturbance_torque")
 
     # 5. Angular momentum sanity check
     fig, ax = plt.subplots(figsize=(8, 4))
@@ -75,7 +87,7 @@ def run(output_dir: str = "output", params: ADCSParams = None) -> dict:
     ax.set(xlabel="Time [h]", ylabel="|H| [N·m·s]",
            title="Total angular momentum (integrator check)")
     ax.grid(alpha=0.3)
-    fig.tight_layout(); fig.savefig(out / "angular_momentum.png", dpi=130); plt.close(fig)
+    save(fig, "angular_momentum")
 
     # 6. Momentum budget (disturbance angular-momentum demand)
     fig, ax = plt.subplots(figsize=(8, 4))
@@ -83,7 +95,7 @@ def run(output_dir: str = "output", params: ADCSParams = None) -> dict:
     ax.set(xlabel="Time [h]", ylabel="|∫T_dist dt| [N·m·s]",
            title="Disturbance momentum demand (wiggle = cyclic, climb = secular)")
     ax.grid(alpha=0.3)
-    fig.tight_layout(); fig.savefig(out / "momentum_budget.png", dpi=130); plt.close(fig)
+    save(fig, "momentum_budget")
 
     # 7. Determination: knowledge error vs control error (pointing budget)
     det = result.get("determination")
@@ -101,7 +113,7 @@ def run(output_dir: str = "output", params: ADCSParams = None) -> dict:
         a2.set(xlabel="Time [h]", ylabel="Gyro-bias error [°/hr]",
                title="Gyro-bias estimate convergence")
         a2.grid(alpha=0.3)
-        fig.tight_layout(); fig.savefig(out / "pointing_budget.png", dpi=130); plt.close(fig)
+        save(fig, "pointing_budget")
 
     acquire = result.get("t_acquire_h")
     budget = result.get("momentum_budget", {})
@@ -162,5 +174,22 @@ def run(output_dir: str = "output", params: ADCSParams = None) -> dict:
     return result
 
 
+def main(output_dir: str = "output"):
+    """Run the two scenarios required by the brief and write all plots.
+
+    Each scenario covers 4 full orbits (about 43 h), satisfying the
+    "at least 3 full orbits / at least 36 hours" requirement.
+    """
+    print("=" * 62)
+    print("Scenario 1/2: B-dot magnetic detumbling (4 orbits)")
+    print("=" * 62)
+    run(output_dir, default_params(mode="detumble"), prefix="detumble_")
+    print()
+    print("=" * 62)
+    print("Scenario 2/2: quaternion-PD sun pointing with reaction wheels")
+    print("=" * 62)
+    run(output_dir, default_params(mode="sun_pointing"), prefix="sunpoint_")
+
+
 if __name__ == "__main__":
-    run()
+    main()

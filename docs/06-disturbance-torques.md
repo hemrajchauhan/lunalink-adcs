@@ -1,4 +1,4 @@
-# 06 — Disturbance Torques (Framework Sec. 6)
+# 06 - Disturbance Torques (Framework Sec. 6)
 
 The four environmental torques acting on the spacecraft. Each returns a torque
 **vector in body axes** (N·m). `R_bi = R(q)` is the body←inertial matrix.
@@ -76,4 +76,4 @@ SRP uses an **effective sun-facing area** model (force along `−ŝ`, always lit
 sunlight) rather than summing individual box faces. This gives the right
 order/torque and is simpler; a per-face model would refine `cos φ` per facet.
 
-Next: [07 — Actuators & control](07-actuators-and-control.md).
+Next: [07 - Actuators & control](07-actuators-and-control.md).

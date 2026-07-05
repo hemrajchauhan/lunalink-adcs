@@ -6,10 +6,10 @@ from .base_plot_tab import BasePlotTab
 from . import style
 
 _TITLES = {
-    "detumble": "Body angular velocity — detumbling convergence",
-    "full": "Body angular velocity — detumble, then pointing",
-    "slew": "Body angular velocity — slew rate profile",
-    "sun_pointing": "Body angular velocity — rate damping while pointing",
+    "detumble": "Body angular velocity: detumbling convergence",
+    "full": "Body angular velocity: detumble, then pointing",
+    "slew": "Body angular velocity: slew rate profile",
+    "sun_pointing": "Body angular velocity: rate damping while pointing",
 }
 
 
@@ -44,8 +44,8 @@ class AngularVelocityTab(BasePlotTab):
         if acquire is not None:
             rows.append(("Target acquired", style.fmt(acquire, "h"), style.GOOD))
         elif mode in ("detumble", "full"):
-            rows.append(("Target acquired", "not within this run — "
-                         "extend the duration", style.WARN))
+            rows.append(("Target acquired", "not within this run "
+                         "(extend the duration)", style.WARN))
         note = ("B-dot detumbling only bites near perigee, where the "
                 "geomagnetic field is strong; on a Molniya-type orbit the rate "
                 "therefore drops in steps once per orbit."

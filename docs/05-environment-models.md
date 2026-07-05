@@ -1,4 +1,4 @@
-# 05 — Environment Models (Framework Sec. 7)
+# 05 - Environment Models (Framework Sec. 7)
 
 These give the *inputs* the disturbance torques and control laws need at the
 spacecraft's current position. All vectors are in the Earth-Centred Inertial
@@ -31,7 +31,7 @@ in shadow  ⇔  (r · ŝ < 0)  AND  | r − (r·ŝ) ŝ | < R_E
 
 **Code:** `eclipse.is_in_eclipse(r_eci, sun_hat)`.
 Gates SRP off in shadow. For a HEO, eclipses cluster near perigee and are
-seasonal — some epochs see none, which is physically correct.
+seasonal - some epochs see none, which is physically correct.
 
 ## 5.3 Geomagnetic field (Eq. 27)
 
@@ -67,8 +67,8 @@ scale_height=60 km)`. The simulator only calls it below
 ## ⚠️ Assumptions to state in a report
 
 - **Aligned dipole** `m̂ = −ẑ_E` (the framework also allows tilted dipole or
-  IGRF — we use the simplest, and say so).
-- Density `ρ₀ ~ 10⁻¹²` kg/m³ at 500 km — solar-activity dependent (varies ~10×);
+  IGRF - we use the simplest, and say so).
+- Density `ρ₀ ~ 10⁻¹²` kg/m³ at 500 km - solar-activity dependent (varies ~10×);
   pick and state your case.
 
-Next: [06 — Disturbance torques](06-disturbance-torques.md).
+Next: [06 - Disturbance torques](06-disturbance-torques.md).

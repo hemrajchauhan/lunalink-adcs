@@ -38,8 +38,8 @@ class DisturbanceTorqueTab(BasePlotTab):
                          f"&nbsp;·&nbsp; perigee {style.fmt(entry['perigee_nm'], 'N·m')} "
                          f"&nbsp;·&nbsp; apogee {style.fmt(entry['apogee_nm'], 'N·m')} "
                          f"&nbsp;·&nbsp; <i>{entry['behaviour']}</i>"))
-        note = ("Shaded bands are eclipse passes — solar-radiation-pressure "
-                "torque vanishes there. Gravity-gradient, magnetic and "
+        note = ("Shaded bands are eclipse passes, where solar-radiation-"
+                "pressure torque vanishes. Gravity-gradient, magnetic and "
                 "aerodynamic torques all spike at perigee (∝ 1/r³ or denser "
                 "air), while SRP dominates the long apogee arcs.")
         return style.summary_html(

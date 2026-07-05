@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QFormLayout, QLabel, QGroupBox, QScrollArea,
+    QWidget, QVBoxLayout, QFormLayout, QLabel, QGroupBox,
 )
 
 from ...simulation.physics import orbit
@@ -28,13 +28,10 @@ class MissionInfoPanel(QWidget):
         return lbl
 
     def _build_ui(self):
-        outer = QVBoxLayout(self)
-        outer.setContentsMargins(0, 0, 0, 0)
-
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        inner = QWidget()
-        layout = QVBoxLayout(inner)
+        # No internal scroll area: the hosting view (the Mission tab) provides
+        # one scrollable column, avoiding nested scroll bars.
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
 
         heading = QLabel("Mission Details")
         heading.setStyleSheet("font-weight: 600; font-size: 13px; padding: 2px;")
@@ -126,8 +123,6 @@ class MissionInfoPanel(QWidget):
             layout.addWidget(prof_box)
 
         layout.addStretch()
-        scroll.setWidget(inner)
-        outer.addWidget(scroll)
 
     # ------------------------------------------------------------------
     def update_for_mission(self, name: str):

@@ -10,7 +10,10 @@ import pyqtgraph as pg
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor, QFont
 
-pg.setConfigOptions(antialias=True)
+# Antialiasing is intentionally OFF: the result curves hold 15k+ samples per
+# series and antialiased repaints make scrolling visibly laggy. Together with
+# peak-mode downsampling (below) the plots stay crisp AND smooth to scroll.
+pg.setConfigOptions(antialias=False)
 
 # -- palette ----------------------------------------------------------------
 BACKGROUND = "#10141d"
@@ -46,20 +49,37 @@ _AXIS_FONT = QFont("Segoe UI", 9)
 
 
 # -- construction -------------------------------------------------------------
+MIN_PLOT_HEIGHT = 340       # keeps charts readable; the tab page scrolls instead
+
+
+def _axis_label(name: str, unit: str) -> str:
+    """Unit embedded in the label text. Deliberately NOT passed to pyqtgraph's
+    ``units`` argument, which would apply SI prefixes and produce nonsense
+    like "Time (kh)" for hour-based axes."""
+    return f"{name} [{unit}]" if unit else name
+
+
 def make_plot(title: str = "", left=("y", ""), bottom=("Time", "h"),
               log_y: bool = False) -> pg.PlotWidget:
     """A PlotWidget with the shared theme applied."""
     plot = pg.PlotWidget()
     plot.setBackground(BACKGROUND)
+    plot.setMinimumHeight(MIN_PLOT_HEIGHT)
     plot.showGrid(x=True, y=True, alpha=GRID_ALPHA)
+    # Performance: draw only the on-screen slice of each curve and let
+    # pyqtgraph reduce the 15k+ samples to one min/max pair per screen
+    # column (visually identical, an order of magnitude fewer points).
+    item = plot.getPlotItem()
+    item.setDownsampling(auto=True, mode="peak")
+    item.setClipToView(True)
     for side in ("left", "bottom"):
         axis = plot.getAxis(side)
         axis.setPen(pg.mkPen(AXIS_COLOR))
         axis.setTextPen(pg.mkPen(AXIS_COLOR))
         axis.setStyle(tickFont=_AXIS_FONT)
-    plot.setLabel("left", left[0], units=left[1],
+    plot.setLabel("left", _axis_label(*left),
                   color=AXIS_COLOR, **{"font-size": "10pt"})
-    plot.setLabel("bottom", bottom[0], units=bottom[1],
+    plot.setLabel("bottom", _axis_label(*bottom),
                   color=AXIS_COLOR, **{"font-size": "10pt"})
     if title:
         set_title(plot, title)
@@ -135,7 +155,7 @@ def shade_intervals(plot, t: np.ndarray, mask: np.ndarray,
 def fmt(value, unit: str = "", digits: int = 3) -> str:
     """Compact numeric formatting for summary tables."""
     if value is None:
-        return "—"
+        return "n/a"
     if isinstance(value, str):
         return value
     magnitude = abs(value)

@@ -1,4 +1,4 @@
-# LunaLink ADCS — Documentation
+# LunaLink ADCS - Documentation
 
 A tutorial-style guide to the physics, the code, and how to use the LunaLink
 Attitude Determination and Control System (ADCS) simulator.
@@ -10,12 +10,12 @@ our implementation matches** the framework.
 
 ## How to read this
 
-Read in order — each chapter builds on the previous one, mirroring the order in
+Read in order - each chapter builds on the previous one, mirroring the order in
 which the simulation evaluates things each time step.
 
 | # | Document | What it covers |
 |---|----------|----------------|
-| — | [README](README.md) | This page: the big picture |
+| - | [README](README.md) | This page: the big picture |
 | 01 | [Architecture & data](01-architecture-and-data.md) | Folder layout, JSON data model, what is data vs code |
 | 02 | [Orbit mechanics](02-orbit-mechanics.md) | Kepler propagation, position & velocity (Sec. 3) |
 | 03 | [Attitude & kinematics](03-attitude-kinematics.md) | Quaternions, pointing error (Sec. 4) |
@@ -25,7 +25,7 @@ which the simulation evaluates things each time step.
 | 07 | [Actuators & control](07-actuators-and-control.md) | Wheel/torquer sizing, B-dot, PD, desaturation (Sec. 8–9) |
 | 08 | [The simulation loop](08-simulation-loop.md) | How one time step ties it all together (Sec. 10) |
 | 09 | [Verification](09-verification.md) | Framework ↔ code cross-check, hand-calc anchors, known approximations |
-| 10 | [Tutorial: create a mission](10-tutorial-create-mission.md) | Add a satellite / orbit / mission — inputs vs computed |
+| 10 | [Tutorial: create a mission](10-tutorial-create-mission.md) | Add a satellite / orbit / mission - inputs vs computed |
 | 11 | [Momentum budget & hierarchy](11-momentum-budget.md) | Cyclic vs secular momentum, wheel/torquer sizing, lecture cross-check |
 | 12 | [J2 secular drift rates](12-j2-secular-rates.md) | RAAN/apsidal drift, the 63.4° critical inclination, justifying the fixed-orbit assumption |
 | 13 | [Attitude determination](13-attitude-determination.md) | Gyro + star tracker, complementary filter, knowledge vs control error, the pointing budget |

@@ -1,4 +1,4 @@
-# 07 — Actuators & Control (Framework Sec. 8–9)
+# 07 - Actuators & Control (Framework Sec. 8–9)
 
 How the spacecraft is sized and how it actually controls its attitude.
 
@@ -17,10 +17,10 @@ Magnetorquer dipole:   |m| = (margin) · T_C / B                              (E
 
 **Code:** `sizing.slew_sizing`, `sizing.cyclic_storage`,
 `sizing.magnetorquer_dipole`, and `sizing.sizing_summary(mass, dims, a)` which
-the GUI calls. These are **computed** from the satellite + orbit — the user does
+the GUI calls. These are **computed** from the satellite + orbit - the user does
 not enter inertia or recommended wheel size.
 
-## 7.2 Detumbling — B-dot (Sec. 9.1, Eq. 33–34)
+## 7.2 Detumbling - B-dot (Sec. 9.1, Eq. 33–34)
 
 Remove the initial tumble using only the magnetometer rate and magnetorquers:
 
@@ -38,9 +38,9 @@ perigee, scaled by `bdot_gain_fraction` from JSON.
 
 > **HEO reality (framework note).** B ∝ 1/R³, so torquers are effective only near
 > perigee; from 10 °/s, full detumble can take *several orbits*. Over 3 orbits
-> you see **partial** convergence — that is physically correct, not a bug.
+> you see **partial** convergence - that is physically correct, not a bug.
 
-## 7.3 Sun-pointing — quaternion PD + wheels (Sec. 9.2, Eq. 35–36)
+## 7.3 Sun-pointing - quaternion PD + wheels (Sec. 9.2, Eq. 35–36)
 
 ```
 T_c = −K_p q_{e,v} − K_d ω_e
@@ -52,27 +52,40 @@ The reaction wheels realise it via `ḣ_w = −T_c`.
 **Code:** `pointing.pd_gains(I, ω_n, ζ)`, `pointing.pd_torque(q_ev, ω_e, Kp, Kd)`.
 `ω_n` (`natural_freq`) and `ζ` (`damping`) come from JSON.
 
-## 7.4 Wheel desaturation — magnetic (Sec. 9.3, Eq. 37)
+## 7.4 Wheel desaturation - magnetic (Sec. 9.3, Eq. 37)
 
 When stored wheel momentum nears capacity, bleed it magnetically:
 
 ```
-m   = (k_d / |B|²) · ( B × (h_w − h_w,ref) )      clipped to m_max
-T_c = m × B        (opposes the stored momentum, ⊥ B)
+m     = (k_d / |B|²) · ( (h_w − h_w,ref) × B )      clipped to m_max
+T_mtq = m × B = −k_d · (h_w − h_w,ref)_⊥            (opposes the stored momentum, ⊥ B)
 ```
 
-**Code:** `desaturation.desaturation_dipole(B, h_w, gain, max_dipole)`. The
-simulator triggers it when `|h_w| > desat_trigger_fraction · h_max` and applies a
-`momentum_dump_factor` reduction (both from JSON), producing the saw-tooth in
-the "Reaction-Wheel Momentum" plot.
+Sign matters: with the wheels holding attitude, `ḣ_w` integrates the external
+torque, so the magnetorquer torque must point *against* `h_w` to unload it
+(the reversed cross product `B × Δh` would pump momentum *into* the wheels).
 
-## Three scenarios (the `mode` parameter)
+**Code:** `desaturation.desaturation_dipole(B, h_w, gain, max_dipole)`. The
+simulator triggers it when `|h_w| > desat_trigger_fraction · h_max`. Momentum
+leaves the wheels *only* through this external torque; there is no artificial
+"dump" step, because removing wheel momentum without a torque would violate
+conservation of angular momentum. Desaturation is therefore concentrated near
+perigee (strong field) and produces the slow saw-tooth in the "Wheel Momentum"
+plot.
+
+**Wheel saturation.** The commanded `ḣ_w` is additionally limited so that
+`|h_w|` never exceeds the per-wheel capacity: a full wheel cannot absorb more
+momentum, and the reaction torque applied to the body is computed from the
+momentum the wheels *actually* exchange.
+
+## Four scenarios (the `mode` parameter)
 
 | `mode` | What runs | Demonstrates |
 |--------|-----------|--------------|
 | `detumble` | B-dot only, from the initial tumble | angular-velocity convergence |
 | `sun_pointing` | PD + wheels from a near-pointed state | acquisition + momentum build-up + desaturation |
 | `full` | detumble, then auto-switch to pointing once rates are low | end-to-end ConOps |
+| `slew` | rest-to-rest reorientation by a commanded angle | torque/momentum limits, settle time vs the bang-bang estimate |
 
 ## ✅ Cross-check vs the framework
 
@@ -83,4 +96,4 @@ the "Reaction-Wheel Momentum" plot.
 | Sun-pointing steady error | small / converges | → 0.02° | ✅ |
 | `ω_n`, `ζ` → `K_p`, `K_d` | Eq. 36 | exact | ✅ |
 
-Next: [08 — The simulation loop](08-simulation-loop.md).
+Next: [08 - The simulation loop](08-simulation-loop.md).

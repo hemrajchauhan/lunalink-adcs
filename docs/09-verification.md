@@ -1,4 +1,4 @@
-# 09 — Verification: Framework ↔ Code
+# 09 - Verification: Framework ↔ Code
 
 This is the "did we implement it correctly?" chapter. It maps **every** equation
 in the framework to the code that implements it, lists the hand-calc anchors we
@@ -30,8 +30,8 @@ reproduce, and is honest about the deliberate approximations.
 | B-dot detumble (19‑15..17) | 33–34 | `control/detumble.py` | ✅ (ω×B variant) |
 | PD pointing (19‑9,10) | 35–36 | `control/pointing.py` | ✅ |
 | Desaturation | 37 | `control/desaturation.py` | ✅ |
-| Critical inclination J2 | 9 | — | ⚠️ noted, not propagated |
-| Nutation frequency | 38 | — | ⚠️ implicit (sets `dt`), not output |
+| Critical inclination J2 | 9 | - | ⚠️ noted, not propagated |
+| Nutation frequency | 38 | - | ⚠️ implicit (sets `dt`), not output |
 | Integration loop | Sec. 10 | `simulation/simulator.py` | ✅ |
 
 ## Hand-calc anchors reproduced
@@ -53,13 +53,13 @@ These are the framework's "shaded box" numbers; the code reproduces them:
 
 ## Deliberate approximations (state these in a report)
 
-1. **Period 10.7 h vs brief's 12 h** — kept the 500×36 000 km altitudes; flagged.
-2. **J2 secular drift not propagated** — justified by the 63.4° critical
+1. **Period 10.7 h vs brief's 12 h** - kept the 500×36 000 km altitudes; flagged.
+2. **J2 secular drift not propagated** - justified by the 63.4° critical
    inclination (Eq. 9 ⇒ ω̇_peri ≈ 0).
 3. **Aligned magnetic dipole** `m̂ = −ẑ` (tilted/IGRF optional).
 4. **SRP effective-area** model rather than per-face summation.
 5. **B-dot uses `m = k(ω×B)`** (the standard ω×B form of `m = −k Ḃ`).
-6. **Sun stationary; planet phasing approximate** (no full ephemeris) — affects
+6. **Sun stationary; planet phasing approximate** (no full ephemeris) - affects
    the 3D view only, not the ADCS physics.
 7. **3D visual scaling is non-physical** (planets/orbits scaled for visibility);
    all real values are in SI in the data and the simulation.
@@ -71,4 +71,4 @@ plots; compare the perigee/apogee disturbance magnitudes and the inertia
 against the table above. The `physics/*` functions are pure and unit-testable in
 isolation (e.g. `box_inertia(500,(2,1.5,1))` → `[135.4, 208.3, 260.4]`).
 
-Next: [10 — Tutorial: create a mission](10-tutorial-create-mission.md).
+Next: [10 - Tutorial: create a mission](10-tutorial-create-mission.md).
