@@ -37,7 +37,8 @@ Energy argument (why it works): `Ṫ_rot = ωᵀ T_c ≤ 0`.
 perigee, scaled by `bdot_gain_fraction` from JSON.
 
 > **HEO reality (framework note).** B ∝ 1/R³, so torquers are effective only near
-> perigee; from 10 °/s, full detumble can take *several orbits*. Over 3 orbits
+> perigee; from 10 °/s, full detumble can take *several orbits*. Over the
+> default 4 orbits
 > you see **partial** convergence - that is physically correct, not a bug.
 
 ## 7.3 Sun-pointing - quaternion PD + wheels (Sec. 9.2, Eq. 35–36)

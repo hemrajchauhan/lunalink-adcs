@@ -1,0 +1,350 @@
+% =========================================================================
+%  LunaLink ADCS Simulation Report
+%  Project X, LunaLink Simulation Challenge
+%  Spacecraft Design: Fundamentals, SS 2026, TUM
+%
+%  Compile from THIS directory (output/) so the figures resolve:
+%      pdflatex LunaLink_ADCS_Report.tex
+%      pdflatex LunaLink_ADCS_Report.tex   (second pass for references)
+%
+%  The figures are the PNG files produced by the headless run:
+%      python -m lunalink.main_simulation
+%  Regenerating the plots updates the report automatically on recompile.
+% =========================================================================
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[margin=2.2cm]{geometry}
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{siunitx}
+\usepackage{caption}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+\usepackage{microtype}
+
+\graphicspath{{./}}
+\captionsetup{font=small,labelfont=bf,skip=4pt}
+\setlength{\parskip}{3pt}
+\sisetup{per-mode=symbol}
+
+\title{\vspace{-1.2cm}\textbf{LunaLink ADCS Simulation}\\[2pt]
+\large Attitude Determination and Control for a Molniya-Orbit Earth--Moon Relay}
+\author{Hemraj Chauhan\\
+\small Project X, LunaLink Simulation Challenge \(\cdot\)
+Spacecraft Design: Fundamentals, SS 2026, TUM}
+\date{}
+
+\begin{document}
+\maketitle
+\vspace{-0.9cm}
+
+% -------------------------------------------------------------------------
+\section{Introduction}
+
+LunaLink is a \SI{500}{kg} Earth--Moon relay spacecraft in a Molniya-type
+highly elliptical orbit (\(500 \times 36\,000\)~km, inclination
+\ang{63.4}). This project simulates its \textbf{ADCS}: actuator sizing
+(reaction wheels and magnetorquers), the space environment with all four
+classical disturbance torques along the orbit, and closed-loop attitude
+control in four modes: B-dot detumbling, quaternion-PD sun pointing with
+magnetic wheel desaturation, a combined detumble-then-point mission, and a
+rest-to-rest slew. A gyro plus star-tracker complementary filter runs in
+parallel with the truth state, so the pointing budget can be split into
+knowledge error and control error.
+
+The wheel-augmented rigid-body dynamics and quaternion kinematics
+\begin{equation}
+\mathbf{I}\,\dot{\boldsymbol\omega}
+  = \mathbf{T}_{\mathrm{ext}} - \dot{\mathbf h}_w
+  - \boldsymbol\omega \times \left(\mathbf{I}\boldsymbol\omega + \mathbf h_w\right),
+\qquad
+\dot{\mathbf q} = \tfrac{1}{2}\,\boldsymbol\Omega(\boldsymbol\omega)\,\mathbf q ,
+\label{eq:euler}
+\end{equation}
+are integrated with RK4 at \(\Delta t = \SI{8}{s}\), with the orbit
+propagated analytically (Kepler) each step. Both required scenarios run
+over \textbf{4 full orbits}, i.e.\ \SI{42.7}{h} of simulated time,
+satisfying the brief requirement of at least 3 orbits and at least
+\SI{36}{h}. Deliverables: a PyQt6 GUI (3D orbit view, mission editor, live
+result plots with interpretation summaries) and a headless script,
+\texttt{main\_simulation.py}, that reproduces every figure in this report
+with one command.
+
+% -------------------------------------------------------------------------
+\section{Assumptions}
+
+\begin{table}[h]
+\centering\small
+\begin{tabular}{@{}p{3.4cm}p{5.2cm}p{6.6cm}@{}}
+\toprule
+\textbf{Assumption} & \textbf{Value / model} & \textbf{Justification}\\
+\midrule
+Fixed Keplerian orbit & \(a=\SI{24628}{km}\), \(e=0.7207\),
+  \(i=\ang{63.4}\), \(P=\SI{10.68}{h}\) &
+  J2 secular rates: RAAN \(-0.171\)\si{\degree\per\day}, apsidal
+  \(+0.0005\)\si{\degree\per\day} (critical inclination), i.e.\ under
+  \ang{0.31} drift over the 1.8-day run. The brief's ``\(\approx\)12 h''
+  period is inconsistent with the fixed altitudes; the altitudes are kept.\\
+Mass properties & uniform rigid box: \(\mathbf I =
+  \mathrm{diag}(135.4,\,208.3,\,260.4)\)~\si{kg.m^2} &
+  from \SI{500}{kg} and the \(2.0\times1.5\times1.0\)~m envelope
+  (\(I_x = \tfrac{m}{12}(a_y^2+a_z^2)\), etc.).\\
+CoM--CoP offset & \SI{0.10}{m} along body \(x\) &
+  lever arm for SRP and drag torques (brief step 1).\\
+Geomagnetic field & aligned dipole, \(M_B=\SI{7.94e15}{T.m^3}\),
+  \(\hat{\mathbf m}=-\hat{\mathbf z}\) &
+  dipole model explicitly allowed by the brief; IGRF is future work.\\
+Atmosphere & exponential, \(\rho(\SI{500}{km})=\SI{e-12}{kg/m^3}\),
+  \(H_s=\SI{60}{km}\), cut-off \SI{600}{km} &
+  drag only matters in the brief perigee pass.\\
+Eclipse / Sun & cylindrical shadow; low-precision analytic solar
+  ephemeris & adequate for torque and eclipse timing.\\
+SRP & \(\Phi=\SI{1361}{W/m^2}\), \(A=\SI{3}{m^2}\), reflectance
+  \(q=0.5\) & flat plate, fully sunlit; coefficient stated per brief.\\
+Residual dipole & \SI{1.0}{A.m^2} body-fixed & typical small-spacecraft
+  value; produces \(\mathbf T = \mathbf m \times \mathbf B\).\\
+Actuators & 3 wheels (\SI{4.0}{N.m.s}, \SI{0.05}{N.m} each);
+  3 rods (\SI{50}{A.m^2}) & sized in Sec.~\ref{sec:sizing}; wheel torque
+  and momentum saturation modelled consistently.\\
+Sensors & gyro bias \((3,-2,1.5)\)\si{\degree\per\hour},
+  noise \SI{e-6}{rad/s}; star tracker \SI{10}{arcsec} every \SI{20}{s} &
+  representative COTS values; complementary filter with
+  \(k_p=0.7\), \(k_i=0.5\); bias learning gated while the inter-fix
+  rotation exceeds \ang{20} (residual aliasing while tumbling).\\
+Initial state & tumble \SI{10}{\degree/s} about \((1,0.6,-0.3)\);
+  pointing starts \ang{12.5} off-Sun & initial tumble rate given in the
+  brief.\\
+Integration & RK4, \(\Delta t=\SI{8}{s}\), quaternion renormalised &
+  torque-free \(|\mathbf H|\) conserved to \(10^{-15}\) over \SI{1000}{s}
+  (verification anchor).\\
+\bottomrule
+\end{tabular}
+\caption{Engineering assumptions and their justification.}
+\end{table}
+
+% -------------------------------------------------------------------------
+\section{Results}
+
+\subsection{Actuator sizing}\label{sec:sizing}
+
+Reaction wheels are driven by agility, not by cyclic disturbance storage.
+For a rest-to-rest slew of \(\theta=\ang{90}\) in \(t=\SI{300}{s}\) about
+the worst axis,
+\begin{equation}
+T_{\mathrm{slew}} = \frac{4\,I\,\theta}{t^2} = \SI{18.2}{mN.m},
+\qquad
+h_{\mathrm{peak}} = \frac{T_{\mathrm{slew}}\, t}{2} = \SI{2.73}{N.m.s},
+\end{equation}
+versus only \(\pm\SI{0.13}{N.m.s}\) of cyclic disturbance swing per orbit.
+With a 1.5 margin the recommended wheel capacity is \SI{4.1}{N.m.s};
+\SI{4.0}{N.m.s} wheels with \SI{0.05}{N.m} torque are carried. The
+magnetorquer minimum for secular momentum dumping is tiny
+(\(m \ge T_D/B \approx \SI{0.02}{A.m^2}\) at the perigee field), so
+detumbling authority drives the choice: \SI{50}{A.m^2} rods give about
+\SI{1.2}{mN.m} near perigee where \(B \approx \SI{24}{\micro T}\).
+
+\begin{table}[h]
+\centering\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Quantity} & \textbf{Value} & \textbf{Driver}\\
+\midrule
+Principal inertia & 135.4 / 208.3 / 260.4 \si{kg.m^2} & 500 kg box\\
+Slew control torque & \SI{18.2}{mN.m} & \ang{90} in \SI{300}{s}\\
+Peak slew momentum & \SI{2.73}{N.m.s} & same slew\\
+Cyclic disturbance swing & \SI{0.131}{N.m.s} per orbit & 4-orbit run\\
+Recommended wheel capacity & \SI{4.1}{N.m.s} (\(\times\)1.5 margin) & slew-driven\\
+Secular momentum to dump & \SI{0.241}{N.m.s} per day & SRP secular\\
+Magnetorquer dipole carried & \SI{50}{A.m^2} & detumbling authority\\
+\bottomrule
+\end{tabular}
+\caption{Sizing summary.}
+\end{table}
+
+\subsection{Scenario 1: B-dot detumbling (4 orbits)}
+
+The B-dot law with the magnetometer-rate approximation,
+\begin{equation}
+\mathbf m = k\,(\boldsymbol\omega \times \mathbf B),
+\qquad
+\mathbf T_c = \mathbf m \times \mathbf B,
+\qquad \dot T_{\mathrm{rot}} = \boldsymbol\omega^{\!\top}\mathbf T_c \le 0,
+\end{equation}
+clipped at \SI{50}{A.m^2}, damps the \SI{10}{\degree/s} tumble to
+\SI{6.8}{\degree/s} in \SI{42.7}{h} (Fig.~\ref{fig:detumble}). The
+staircase shape is the physics of a Molniya orbit: control torque scales
+with \(B^2\) and \(B \propto r^{-3}\), so essentially all braking happens
+in the short perigee pass. Extrapolating the momentum removed per pass,
+full detumble takes roughly 10--12 orbits (4--5 days), consistent with
+published HEO magnetic-detumbling experience. This is a finding, not a
+deficiency: it quantifies why HEO missions either budget days for magnetic
+detumbling or carry thrusters for initial rate damping.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.86\textwidth]{detumble_angular_velocity.png}
+\caption{Detumbling: body rates drop step-wise at each perigee pass
+(\(B \propto r^{-3}\)).}
+\label{fig:detumble}
+\end{figure}
+
+\subsection{Scenario 2: sun pointing with reaction wheels (4 orbits)}
+
+Starting \ang{12.5} off-Sun, the quaternion-PD controller
+\begin{equation}
+\mathbf T_c = -\mathbf K_p\, \mathbf q_{e,v} - \mathbf K_d\, \boldsymbol\omega,
+\qquad
+\mathbf K_p = \mathbf I\,\omega_n^2,\quad
+\mathbf K_d = 2\zeta\,\mathbf I\,\omega_n,
+\qquad (\omega_n=\SI{0.05}{rad/s},\ \zeta=0.7)
+\end{equation}
+acquires the Sun line in \SI{2.6}{min} and holds it for the rest of the
+run: final pointing error \ang{0.020}, RMS control error \ang{0.0053} over
+the converged final quarter (Fig.~\ref{fig:pointing}).
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.86\textwidth]{sunpoint_attitude_error.png}
+\caption{Sun-pointing error: acquisition from the \ang{12.5} offset, then a
+sub-\ang{0.03} hold across 4 orbits.}
+\label{fig:pointing}
+\end{figure}
+
+Wheel momentum ratchets up under the secular SRP torque and is unloaded by
+the cross-product law
+\begin{equation}
+\mathbf m = \frac{k_d}{\lVert\mathbf B\rVert^{2}}
+            \left(\mathbf h_w \times \mathbf B\right)
+\;\;\Rightarrow\;\;
+\mathbf T_{\mathrm{mtq}} = \mathbf m \times \mathbf B
+ = -k_d\, \mathbf h_{w,\perp},
+\label{eq:desat}
+\end{equation}
+once the \SI{80}{\percent} trigger (\SI{3.2}{N.m.s}) is crossed; dumping
+concentrates near perigee where the field is strong, producing the slow
+saw-tooth of Fig.~\ref{fig:wheels}. Brief per-axis saturation at
+\SI{4.0}{N.m.s} is visible and handled consistently: the reaction torque
+applied to the body is computed from the momentum the wheels can actually
+absorb. Note the sign in Eq.~\eqref{eq:desat}: the reversed cross product
+\(\mathbf B \times \mathbf h_w\) would pump momentum \emph{into} the
+wheels (Sec.~\ref{sec:ai}).
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.86\textwidth]{sunpoint_rw_momentum.png}
+\caption{Wheel momentum with the desaturation trigger (\SI{3.2}{N.m.s})
+and per-wheel capacity (\SI{4.0}{N.m.s}).}
+\label{fig:wheels}
+\end{figure}
+
+\subsection{Disturbance environment and momentum budget}
+
+Gravity gradient dominates at perigee
+(peak \SI{1.6e-4}{N.m}, \(r^{-3}\) scaling), followed by the
+residual-dipole magnetic torque (\SI{4.5e-5}{N.m}) and aerodynamic drag
+(\SI{7.6e-6}{N.m}, only inside the \SI{600}{km} cut-off). SRP is smallest
+(\SI{2.0e-6}{N.m}) but is the only strictly secular source, so it alone
+sets the daily dump requirement of \SI{0.24}{N.m.s} per day
+(Figs.~\ref{fig:dist}, \ref{fig:budget}). The integrator sanity check
+holds: torque-free \(|\mathbf H|\) is conserved to \(10^{-15}\) relative
+error, and in closed loop \(|\mathbf H|\) changes only through external
+torques.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.86\textwidth]{sunpoint_disturbance_torque.png}
+\caption{Disturbance torques vs orbit position (log scale): gravity
+gradient spikes at perigee, SRP carries the secular load at apogee.}
+\label{fig:dist}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.86\textwidth]{sunpoint_momentum_budget.png}
+\caption{Cumulative disturbance momentum demand: the per-orbit wiggle is
+cyclic (wheels store and return it), the climb is secular (torquers must
+dump it).}
+\label{fig:budget}
+\end{figure}
+
+\subsection{Attitude determination and pointing budget}
+
+The complementary filter integrates the biased gyro,
+\(\hat{\mathbf q} \leftarrow \mathrm{RK4}(\hat{\mathbf q},\,
+\boldsymbol\omega_{\mathrm{meas}}-\hat{\mathbf b},\,\Delta t)\), and on
+each star fix applies
+\begin{equation}
+\mathbf a = 2\,\mathrm{vec}\!\left(\hat{\mathbf q}^{-1}\otimes
+\mathbf q_{\mathrm{meas}}\right),
+\qquad
+\hat{\mathbf q} \leftarrow \hat{\mathbf q}\otimes
+\delta\mathbf q(k_p\,\mathbf a),
+\qquad
+\hat{\mathbf b} \leftarrow \hat{\mathbf b} - k_i\,\mathbf a / T .
+\end{equation}
+It learns the \((3,-2,1.5)\)\si{\degree\per\hour} gyro bias online: the
+bias-estimate error falls from 3.91 to \SI{0.25}{\degree\per\hour} and the
+knowledge error settles at the star-tracker noise floor
+(Fig.~\ref{fig:det}). Budget over the converged tail: knowledge
+\ang{0.0045} RMS (budget \ang{0.01}, \textbf{pass}), control \ang{0.0053}
+RMS (budget \ang{0.08}), total \ang{0.0098} versus the \ang{0.1}
+allocation. During detumbling, bias learning is deliberately paused: with
+\SI{20}{s} between fixes at \SI{10}{\degree/s} the inter-fix rotation
+exceeds \ang{180} and the residual aliases, which would corrupt the bias
+estimate by orders of magnitude.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.86\textwidth]{sunpoint_pointing_budget.png}
+\caption{Knowledge vs control error (log scale, top) and gyro-bias
+estimate convergence (bottom).}
+\label{fig:det}
+\end{figure}
+
+% -------------------------------------------------------------------------
+\section{How AI was used}\label{sec:ai}
+
+Claude (Anthropic) was used throughout, always with independent
+verification. \textbf{(1) Physics review:} the AI audited every formula
+against SMAD and the lecture notes and found three real bugs that I
+confirmed and accepted: the desaturation dipole had a reversed cross
+product (\(\mathbf m = k\,\mathbf B\times\mathbf h_w\) pumps momentum into
+the wheels; the correct law is Eq.~\eqref{eq:desat}); the initial pointing
+offset used \(\sin\theta\) instead of the quaternion half-angle
+\(\sin(\theta/2)\), doubling the commanded offset; and the estimator's
+bias learning diverged during tumbling because large inter-fix rotations
+alias into small residuals. \textbf{(2) Verification:} AI-written
+numerical checks: torque-free momentum conservation (\(10^{-15}\)),
+quaternion-convention round-trips, and regression tests pinning all
+results across refactors. \textbf{(3) Engineering:} refactoring into a
+physics/GUI architecture, the PyQt6 interface, plot design, documentation
+and this report's draft. What I had to correct: the AI's first estimator
+fix (gating on residual size only) did not stop the divergence; the
+aliasing analysis had to be pushed further to gate on the expected
+inter-fix rotation. All final numbers are reproduced from the committed
+code with one command.
+
+% -------------------------------------------------------------------------
+\section{References}
+
+\begin{enumerate}\itemsep1pt
+\item J.~R. Wertz, D.~F. Everett, J.~J. Puschell (eds.),
+      \emph{Space Mission Engineering: The New SMAD}, Microcosm Press,
+      2011. (Slew torque, cyclic storage and dipole sizing equations.)
+\item F.~L. Markley, J.~L. Crassidis, \emph{Fundamentals of Spacecraft
+      Attitude Determination and Control}, Springer, 2014. (Quaternion
+      conventions, wheel-augmented Euler equation, complementary
+      filtering.)
+\item D.~A. Vallado, \emph{Fundamentals of Astrodynamics and
+      Applications}, 4th ed., Microcosm Press, 2013. (Kepler propagation,
+      J2 secular rates, solar ephemeris.)
+\item M.~J. Sidi, \emph{Spacecraft Dynamics and Control}, Cambridge
+      University Press, 1997. (B-dot detumbling, cross-product
+      desaturation law.)
+\item TUM Chair of Spacecraft Systems, \emph{Spacecraft Design:
+      Fundamentals SS 2026}, ADCS lecture and exercise notes.
+\item \emph{Project X, LunaLink Simulation Challenge brief}, v2, TUM,
+      2026.
+\end{enumerate}
+
+\end{document}

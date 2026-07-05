@@ -45,7 +45,8 @@ use the stage state. This is stable and fast.
 
 ## Time step `dt`
 
-Default `dt = 8 s` (from JSON), ~7 s wall-clock for 3 orbits. The framework
+Default `dt = 8 s` (from JSON), roughly 10 s wall-clock for the default
+4 orbits. The framework
 allows 1–5 s for the slow modes and ≤0.5 s through perigee; because the orbit is
 **analytic** (Kepler each step, no integration error in position) an 8 s step
 resolves the attitude dynamics well. Lower `dt_s` in `simulation_defaults.json`

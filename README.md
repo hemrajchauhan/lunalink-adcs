@@ -103,8 +103,16 @@ uv run python -m lunalink.main_simulation
 python -m lunalink.main_simulation
 ```
 
-Reference plots for the default configuration are committed in `output/`, and
-the project report (PDF) is in `report/`.
+Reference plots for the default configuration live in `output/`, next to the
+report source `output/LunaLink_ADCS_Report.tex`. The LaTeX file references
+the PNG files by name, so regenerating the plots updates the report on the
+next compile:
+
+```bash
+cd output
+pdflatex LunaLink_ADCS_Report.tex
+pdflatex LunaLink_ADCS_Report.tex   # second pass resolves references
+```
 
 ## Project layout
 

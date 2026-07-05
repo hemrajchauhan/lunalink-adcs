@@ -55,7 +55,12 @@ hemisphere. See [02-orbit-mechanics](02-orbit-mechanics.md) for why the stated
 ## Running it
 
 ```bash
-pip install -e .
-python -m lunalink.main_gui          # interactive GUI
-python -m lunalink.main_simulation   # headless: writes plots to output/
+pip install -r requirements.txt && pip install -e .
+python -m lunalink.main              # interactive GUI (main_gui is an alias)
+python -m lunalink.main_simulation   # headless: detumbling + sun pointing,
+                                     # 4 orbits each, plots to output/
 ```
+
+The default simulated duration is 4 orbits (42.7 h), which satisfies the
+brief's "at least 3 full orbits / at least 36 hours" requirement. See the
+root README for uv-based setup and the LaTeX report sources in `output/`.
