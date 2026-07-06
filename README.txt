@@ -35,6 +35,7 @@ Install uv once:
     Linux / macOS:
         curl -LsSf https://astral.sh/uv/install.sh | sh
 
+Restart PowerShell after the installation.
 Then, in the project folder (the folder with pyproject.toml):
 
     uv sync
@@ -73,7 +74,7 @@ files into the folder:  output/
 (detumble_*.png and sunpoint_*.png)
 
 
-4. HOW TO RUN THE GUI
+4. HOW TO RUN THE GUI (the first launch may take longer while dependencies are initialized)
 ---------------------------------------------------------------------
 GUI script: src/lunalink/main_gui.py (alias of src/lunalink/main.py)
 
