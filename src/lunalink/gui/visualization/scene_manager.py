@@ -452,7 +452,7 @@ class SceneManager:
             return
         position = self.scene_positions[body_name]
         radius = self.display_radius.get(body_name, 2.0)
-        self.camera_manager.focus_position(position, max(radius * 6, 12))
+        self.camera_manager.focus_position(position, max(radius * 12, 72))
 
     def focus_on_satellite(self, satellite_name):
         if satellite_name not in self.scene_positions:

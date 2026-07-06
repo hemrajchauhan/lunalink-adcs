@@ -106,6 +106,12 @@ the plots (step 3) and recompiling updates the report figures:
     pdflatex LunaLink_ADCS_Report.tex
     pdflatex LunaLink_ADCS_Report.tex
 
+pdflatex MUST run twice: the first pass records the figure and table
+numbers, the second pass fills in the references. After only one
+pass, every "Figure ..." and "Table ..." shows as "??". If a run was
+interrupted, delete the .aux file and compile twice again.
+"latexmk -pdf LunaLink_ADCS_Report.tex" does the passes for you.
+
 
 6. TROUBLESHOOTING
 ---------------------------------------------------------------------

@@ -3,9 +3,17 @@
 %  Project X, LunaLink Simulation Challenge
 %  Spacecraft Design: Fundamentals, SS 2026, TUM
 %
-%  Compile from THIS directory (output/) so the figures resolve:
+%  Compile from THIS directory (output/) so the figures resolve.
+%
+%  IMPORTANT: pdflatex must run TWICE. The first pass records the
+%  figure/table/section numbers; the second pass fills in the \ref
+%  cross-references. After a single pass every reference shows as "??".
+%
 %      pdflatex LunaLink_ADCS_Report.tex
-%      pdflatex LunaLink_ADCS_Report.tex   (second pass for references)
+%      pdflatex LunaLink_ADCS_Report.tex
+%
+%  Or let latexmk handle the passes automatically:
+%      latexmk -pdf LunaLink_ADCS_Report.tex
 %
 %  The figures are the PNG files produced by the headless run:
 %      python -m lunalink.main_simulation
@@ -13,17 +21,20 @@
 % =========================================================================
 \documentclass[11pt,a4paper]{article}
 
-\usepackage[margin=2.2cm]{geometry}
+\usepackage[margin=2.1cm]{geometry}
 \usepackage{graphicx}
 \usepackage{amsmath,amssymb}
 \usepackage{booktabs}
+\usepackage{longtable}   % assumptions table breaks across pages (no float gap)
 \usepackage{siunitx}
+\usepackage{float}       % [H] placement: keep floats exactly where written
 \usepackage{caption}
+\usepackage{subcaption}
 \usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
 \usepackage{microtype}
 
 \graphicspath{{./}}
-\captionsetup{font=small,labelfont=bf,skip=4pt}
+\captionsetup{font=small,labelfont=bf,skip=3pt}
 \setlength{\parskip}{3pt}
 \sisetup{per-mode=symbol}
 
@@ -68,16 +79,13 @@ standard kinematics:
 \label{eq:euler}
 \end{equation}
 These are integrated with a fixed-step RK4 scheme at
-\(\Delta t = \SI{8}{s}\). The orbit itself is solved analytically from
-Kepler's equation at every step, so there is no position drift from the
-integrator. Both required scenarios run for \textbf{4 full orbits}, which
-is \SI{42.7}{h} of simulated time and satisfies the brief requirement of
-at least 3 orbits and at least \SI{36}{h}.
-
-Two programs produce the results. A PyQt6 GUI shows a 3D orbit view, lets
-the user change parameters, and updates all result plots live. A headless
-script, \texttt{main\_simulation.py}, produces every figure in this report
-with one command.
+\(\Delta t = \SI{8}{s}\); the orbit is solved analytically from Kepler's
+equation at every step. Both required scenarios run for \textbf{4 full
+orbits}, which is \SI{42.7}{h} of simulated time and satisfies the brief
+requirement of at least 3 orbits and at least \SI{36}{h}. Two programs
+produce the results: a PyQt6 GUI with a 3D orbit view and live plots, and
+a headless script (\texttt{main\_simulation.py}) that produces every
+figure in this report with one command.
 
 % -------------------------------------------------------------------------
 \section{Assumptions}
@@ -85,32 +93,41 @@ with one command.
 Table~\ref{tab:assumptions} lists every engineering assumption and the
 reason behind it.
 
-\begin{table}[h]
-\centering\small
-\begin{tabular}{@{}p{3.4cm}p{5.2cm}p{6.6cm}@{}}
+\begin{small}
+\begin{longtable}{@{}p{3.3cm}p{5.1cm}p{6.7cm}@{}}
+\caption{Engineering assumptions.}\label{tab:assumptions}\\
 \toprule
 \textbf{Assumption} & \textbf{Value / model} & \textbf{Why it is justified}\\
 \midrule
+\endfirsthead
+\toprule
+\textbf{Assumption} & \textbf{Value / model} & \textbf{Why it is justified}\\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r}{\footnotesize continued on next page}\\
+\endfoot
+\bottomrule
+\endlastfoot
 Fixed Keplerian orbit & \(a=\SI{24628}{km}\), \(e=0.7207\),
   \(i=\ang{63.4}\), \(P=\SI{10.68}{h}\) &
   The main perturbation (J2) shifts the orbit plane by only
   \(-0.171\)\si{\degree\per\day} and the perigee by
   \(+0.0005\)\si{\degree\per\day} (\ang{63.4} is the critical
-  inclination). Over the 1.8-day run that is under \ang{0.31}, so a fixed
-  ellipse is accurate enough. Note: the brief's ``\(\approx\)12 h'' period
-  does not match its own altitudes; we keep the altitudes, which give
-  \SI{10.68}{h}.\\
+  inclination), i.e.\ under \ang{0.31} over the 1.8-day run. The brief's
+  ``\(\approx\)12 h'' period does not match its own altitudes; we keep
+  the altitudes, which give \SI{10.68}{h}.\\
 Mass properties & uniform box: \(\mathbf I =
   \mathrm{diag}(135.4,\,208.3,\,260.4)\)~\si{kg.m^2} &
   Computed from \SI{500}{kg} and the \(2.0\times1.5\times1.0\)~m envelope
   with the standard box formula, as the brief asks.\\
 CoM--CoP offset & \SI{0.10}{m} along body \(x\) &
-  Solar pressure and drag need a lever arm to create torque; a
-  \SI{10}{cm} offset is a typical conservative value.\\
+  Solar pressure and drag need a lever arm to create torque; \SI{10}{cm}
+  is a typical conservative value.\\
 Magnetic field & Earth dipole, \(M_B=\SI{7.94e15}{T.m^3}\) &
-  The brief allows a dipole model. It captures the key physics: the field
-  is strong at perigee and almost gone at apogee.\\
-Atmosphere & exponential, \(\rho(\SI{500}{km})=\SI{e-12}{kg/m^3}\),
+  The brief allows a dipole model. It captures the key physics: strong
+  field at perigee, almost none at apogee.\\
+Atmosphere & exponential, \(\rho(\SI{500}{km})=\SI{1e-12}{kg/m^3}\),
   scale height \SI{60}{km} &
   Drag only matters during the short perigee pass; above \SI{600}{km} it
   is switched off.\\
@@ -121,24 +138,23 @@ Solar pressure & \(\Phi=\SI{1361}{W/m^2}\), \(A=\SI{3}{m^2}\),
   reflectance \(q=0.5\) & Flat-plate model with the SRP coefficient the
   brief asks us to state.\\
 Residual dipole & \SI{1.0}{A.m^2} & Typical leftover magnetism of a small
-  spacecraft; it produces the torque \(\mathbf m \times \mathbf B\).\\
+  spacecraft; produces the torque \(\mathbf m \times \mathbf B\).\\
 Actuators & 3 wheels (\SI{4.0}{N.m.s}, \SI{0.05}{N.m} each);
   3 rods (\SI{50}{A.m^2}) & Sized in Sec.~\ref{sec:sizing}. Wheel torque
   and momentum limits are enforced in the simulation.\\
 Sensors & gyro bias \((3,-2,1.5)\)\si{\degree\per\hour},
-  noise \SI{e-6}{rad/s}; star tracker \SI{10}{arcsec} every \SI{20}{s} &
-  Realistic values for commercial parts. The estimator stops learning the
-  gyro bias while the spacecraft spins fast (see
-  Sec.~\ref{sec:determination}).\\
+  noise \SI{e-6}{rad/s}; star tracker \SI{10}{arcsec}, fixes every
+  \SI{16}{s} (\SI{20}{s} configured, rounded to the \SI{8}{s} step) &
+  Realistic values for commercial parts; complementary filter with
+  \(k_p=0.7\), \(k_i=0.5\). Bias learning pauses while the spacecraft
+  spins fast (Sec.~\ref{sec:determination}).\\
 Initial state & tumble of \SI{10}{\degree/s}; pointing starts \ang{12.5}
-  off the Sun & The tumble rate is given in the brief.\\
+  off the Sun with residual rates \((1.0,-0.5,0.3)\)\,\si{\degree/s} &
+  The tumble rate is given in the brief.\\
 Integration & RK4, \(\Delta t=\SI{8}{s}\) & Check: with all torques off,
   total angular momentum is conserved to \(10^{-15}\) relative error.\\
-\bottomrule
-\end{tabular}
-\caption{Engineering assumptions.}
-\label{tab:assumptions}
-\end{table}
+\end{longtable}
+\end{small}
 
 % -------------------------------------------------------------------------
 \section{Results}
@@ -146,23 +162,22 @@ Integration & RK4, \(\Delta t=\SI{8}{s}\) & Check: with all torques off,
 \subsection{Actuator sizing}\label{sec:sizing}
 
 The wheels are sized by agility, not by disturbances. To turn \ang{90} in
-\SI{300}{s} about the worst axis, the wheels must provide
+\SI{300}{s} about the worst axis,
 \begin{equation}
 T_{\mathrm{slew}} = \frac{4\,I\,\theta}{t^2} = \SI{18.2}{mN.m},
 \qquad
-h_{\mathrm{peak}} = \frac{T_{\mathrm{slew}}\, t}{2} = \SI{2.73}{N.m.s}.
+h_{\mathrm{peak}} = \frac{T_{\mathrm{slew}}\, t}{2} = \SI{2.73}{N.m.s},
 \end{equation}
-The disturbances only ask the wheels to store about \SI{0.13}{N.m.s} per
-orbit, twenty times less. With a 1.5 margin on the slew value we select
-\SI{4.0}{N.m.s} wheels with \SI{0.05}{N.m} torque.
-
+while the disturbances only ask the wheels to store about
+\SI{0.13}{N.m.s} per orbit, twenty times less. With a 1.5 margin on the
+slew value we select \SI{4.0}{N.m.s} wheels with \SI{0.05}{N.m} torque.
 For the magnetorquers, dumping the daily momentum build-up would need only
-about \SI{0.02}{A.m^2}. Detumbling sets the real requirement: \SI{50}{A.m^2}
-rods give about \SI{1.2}{mN.m} of control torque at perigee, where the
-field is \(B \approx \SI{24}{\micro T}\). Table~\ref{tab:sizing} collects
-the numbers.
+about \SI{0.02}{A.m^2}; detumbling sets the real requirement, so
+\SI{50}{A.m^2} rods are carried (about \SI{1.2}{mN.m} of control torque at
+perigee, where \(B \approx \SI{24}{\micro T}\)).
+Table~\ref{tab:sizing} collects the numbers.
 
-\begin{table}[h]
+\begin{table}[H]
 \centering\small
 \begin{tabular}{@{}lll@{}}
 \toprule
@@ -191,26 +206,113 @@ law commands a magnetic dipole against the rotation,
 \mathbf T_c = \mathbf m \times \mathbf B ,
 \end{equation}
 which always removes rotational energy
-(\(\boldsymbol\omega^{\!\top}\mathbf T_c \le 0\)). The commanded dipole is
+(\(\boldsymbol\omega^{\!\top}\mathbf T_c \le 0\)); the commanded dipole is
 clipped at the \SI{50}{A.m^2} rod limit.
 
-Figure~\ref{fig:detumble} shows the result: the rate falls from
-\SI{10.1}{} to \SI{6.8}{\degree/s} in \SI{42.7}{h}, in clear steps. The
-steps are the physics of this orbit. The control torque scales with
-\(B^2\), and \(B\) falls with \(1/r^3\), so nearly all braking happens
-during the short perigee pass. The long apogee arc contributes almost
-nothing. Extrapolating the momentum removed per pass, a full detumble
-takes roughly 10 to 12 orbits, about 4 to 5 days. This is a result, not a
-flaw: it shows why missions in this kind of orbit either plan several days
-for magnetic detumbling or carry thrusters for the first rate reduction.
+Figure~\ref{fig:detumble} shows the result. Reading the actual values:
+the rate starts at \SI{10.09}{\degree/s} and reaches 8.73, 7.84, 7.25 and
+\SI{6.77}{\degree/s} after orbits 1 to 4. The drop happens in steps, one
+per perigee pass, because the control torque scales with \(B^2\) and
+\(B \propto r^{-3}\): braking works only near perigee, and the long
+apogee arc contributes nothing. Extrapolating the momentum removed per
+pass, a full detumble takes roughly 10 to 12 orbits (4 to 5 days). This is
+a result, not a flaw: it shows why missions in this kind of orbit either
+plan several days for magnetic detumbling or carry thrusters for the first
+rate reduction.
 
-\begin{figure}[h]
+\begin{figure}[H]
 \centering
-\includegraphics[width=0.86\textwidth]{detumble_angular_velocity.png}
-\caption{Detumbling. The body rate drops in a step at every perigee pass,
-because the magnetic field (and with it the control torque) is only strong
-near perigee.}
+\includegraphics[width=0.82\textwidth]{detumble_angular_velocity.png}
+\caption{Detumbling: the body rate drops in a step at every perigee pass
+(10.09 \(\rightarrow\) 8.73 \(\rightarrow\) 7.84 \(\rightarrow\) 7.25
+\(\rightarrow\) \SI{6.77}{\degree/s} at the orbit marks).}
 \label{fig:detumble}
+\end{figure}
+
+The cleanest measure of progress is the total angular momentum
+(Fig.~\ref{fig:dt_pair1}a): it falls from \SI{29.0}{N.m.s} to
+\SI{17.1}{N.m.s}, i.e.\ \SI{41}{\percent} removed in four orbits, with the
+same staircase shape. The per-orbit removal shrinks (5.6, 2.9, 1.9,
+\SI{1.5}{N.m.s}) because the B-dot torque weakens as the rate drops. The
+wheel-momentum plot (Fig.~\ref{fig:dt_pair1}b) is a flat line at exactly
+zero: detumbling uses only the magnetorquers, the wheels stay off. This is
+intentional; wheels with \SI{4}{N.m.s} capacity could not absorb a
+\SI{29}{N.m.s} tumble anyway.
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}{0.49\textwidth}
+  \includegraphics[width=\textwidth]{detumble_angular_momentum.png}
+  \caption{Total angular momentum.}
+\end{subfigure}\hfill
+\begin{subfigure}{0.49\textwidth}
+  \includegraphics[width=\textwidth]{detumble_rw_momentum.png}
+  \caption{Wheel momentum (identically zero).}
+\end{subfigure}
+\caption{Detumbling, actuator view. (a) \(|\mathbf H|\) drops
+29.0 \(\rightarrow\) \SI{17.1}{N.m.s} in perigee steps. (b) The wheels are
+not used in this mode, so the stored momentum is exactly zero.}
+\label{fig:dt_pair1}
+\end{figure}
+
+Two plots look odd at first sight and are worth explaining
+(Fig.~\ref{fig:dt_pair2}). The attitude-error trace (a) swings wildly
+between \ang{0.29} and \ang{178.9}: while tumbling there is no pointing
+control, so the angle to the Sun line is just the tumble seen from the
+Sun's direction; the band-filling oscillation is expected and carries no
+information about performance. The disturbance torques (b) still show the
+perigee structure, but the drag peak (\SI{3.2e-5}{N.m}) is about four
+times higher than in the pointing run: the tumbling body presents a
+constantly changing face to the airflow, and the plotted value catches the
+worst orientation of each pass.
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}{0.49\textwidth}
+  \includegraphics[width=\textwidth]{detumble_attitude_error.png}
+  \caption{Angle to the Sun line.}
+\end{subfigure}\hfill
+\begin{subfigure}{0.49\textwidth}
+  \includegraphics[width=\textwidth]{detumble_disturbance_torque.png}
+  \caption{Disturbance torques (log scale).}
+\end{subfigure}
+\caption{Detumbling, environment view. (a) Uncontrolled attitude: the
+error fills the 0.3\,--\,\ang{179} band, as expected while tumbling.
+(b) Perigee spikes as in the pointing run, with a higher drag peak because
+the tumbling body also presents its largest face to the flow.}
+\label{fig:dt_pair2}
+\end{figure}
+
+The momentum-budget and estimator plots complete the picture
+(Fig.~\ref{fig:dt_pair3}). The accumulated disturbance momentum (a) stays
+tiny, only \SI{0.058}{N.m.s} over four orbits, an order of magnitude below
+the pointing run: while the body tumbles, body-fixed disturbance torques
+keep changing sign in the body frame and largely cancel. The estimator (b)
+shows knowledge error oscillating up to \ang{13.7} (mean \ang{4.3}):
+between star fixes \SI{16}{s} apart the body turns by about \ang{160}, so
+the coarse \SI{8}{s} gyro propagation accumulates real error and each fix
+pulls it back. The bias-error trace is deliberately flat at
+\SI{3.91}{\degree\per\hour}: bias learning is paused (gated) while the
+inter-fix rotation is that large, because the residual then no longer
+measures the bias (Sec.~\ref{sec:determination}); it resumes automatically
+once the rates drop.
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}{0.49\textwidth}
+  \includegraphics[width=\textwidth]{detumble_momentum_budget.png}
+  \caption{Accumulated disturbance momentum.}
+\end{subfigure}\hfill
+\begin{subfigure}{0.49\textwidth}
+  \includegraphics[width=\textwidth]{detumble_pointing_budget.png}
+  \caption{Estimator during detumble.}
+\end{subfigure}
+\caption{Detumbling, budget and estimator view. (a) Only
+\SI{0.058}{N.m.s} accumulate; tumbling averages most disturbance torque
+away. (b) Knowledge error up to \ang{13.7} between star fixes; the bias
+estimate stays at \SI{3.91}{\degree\per\hour} because learning is gated at
+high rates.}
+\label{fig:dt_pair3}
 \end{figure}
 
 \subsection{Scenario 2: sun pointing (4 orbits)}
@@ -222,46 +324,88 @@ The pointing controller is a quaternion PD law realised by the wheels:
 \mathbf K_p = \mathbf I\,\omega_n^2,\quad
 \mathbf K_d = 2\zeta\,\mathbf I\,\omega_n,
 \end{equation}
-with bandwidth \(\omega_n=\SI{0.05}{rad/s}\) and damping \(\zeta=0.7\).
-Starting \ang{12.5} away from the Sun, the spacecraft locks on in about
-\SI{2.6}{min} and then holds the Sun line for the rest of the run. The
-final pointing error is \ang{0.020}; the RMS error over the settled part
-of the run is \ang{0.0053} (Fig.~\ref{fig:pointing}).
+with \(\omega_n=\SI{0.05}{rad/s}\) and \(\zeta=0.7\).
 
-\begin{figure}[h]
+At the four-orbit scale the error plot (Fig.~\ref{fig:pointing}) looks
+like a single spike followed by a flat line at zero, so the actual values
+matter. The commanded start offset is \ang{12.5}, but the spacecraft also
+starts with residual rates of \((1.0,-0.5,0.3)\)\,\si{\degree/s}
+(\SI{1.16}{\degree/s} in magnitude); the first logged sample (after one
+\SI{8}{s} step) is already at \ang{20.18}, and the error keeps growing to
+a peak of \ang{37.0} at \(t=\SI{40}{s}\). The growth is
+real physics: the wheels are torque-limited to \SI{0.05}{N.m} and even
+saturate briefly (Fig.~\ref{fig:wheels}), so the initial rates carry the
+attitude further away before the controller can arrest them. After the
+peak the error decays monotonically, without overshoot: it crosses
+\ang{0.1} at \SI{5.1}{min}, and for the rest of the run stays at a mean of
+\ang{0.0018} with brief excursions never exceeding \ang{0.031} (final
+sample \ang{0.020}). The ``flat line'' is therefore a hold four orders of
+magnitude below the peak, not missing data.
+
+\begin{figure}[H]
 \centering
-\includegraphics[width=0.86\textwidth]{sunpoint_attitude_error.png}
-\caption{Sun-pointing error. Fast acquisition from the \ang{12.5} start,
-then a hold below \ang{0.03} for four orbits.}
+\includegraphics[width=0.82\textwidth]{sunpoint_attitude_error.png}
+\caption{Sun-pointing error: first sample \ang{20.18}, peak \ang{37.0} at
+\SI{40}{s} (rate transient against the wheel torque limit), below
+\ang{0.1} after \SI{5.1}{min}, then a hold at mean \ang{0.0018} (max
+\ang{0.031}) for the remaining \SI{42}{h}.}
 \label{fig:pointing}
 \end{figure}
 
-While pointing, the wheels slowly fill up with the momentum that the
-steady part of the disturbance torque feeds into the body. When the stored
-momentum crosses \SI{80}{\percent} of capacity (\SI{3.2}{N.m.s}), the
-magnetorquers unload it with the cross-product law
+The companion plots share this ``all the action is in the first minutes''
+shape (Fig.~\ref{fig:sp_pair}). The body rate (a) starts at
+\SI{0.94}{\degree/s}, is briefly stirred up during acquisition, and then
+drops to below \SI{1.1e-4}{\degree/s} for the entire hold: pointing at the
+Sun is almost an inertially fixed attitude, so the held rates are
+essentially zero. The total angular momentum (b) starts at
+\SI{3.28}{N.m.s} (the initial body spin), is transferred from the body to
+the wheels during acquisition, and afterwards changes only slowly through
+external torques, ending at \SI{2.85}{N.m.s}.
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}{0.49\textwidth}
+  \includegraphics[width=\textwidth]{sunpoint_angular_velocity.png}
+  \caption{Body rate.}
+\end{subfigure}\hfill
+\begin{subfigure}{0.49\textwidth}
+  \includegraphics[width=\textwidth]{sunpoint_angular_momentum.png}
+  \caption{Total angular momentum.}
+\end{subfigure}
+\caption{Sun pointing, motion view. (a) \(|\boldsymbol\omega|\):
+\SI{0.94}{\degree/s} at start, below \SI{1.1e-4}{\degree/s} during the
+hold. (b) \(|\mathbf H|\): 3.28 \(\rightarrow\) \SI{2.85}{N.m.s}; the
+acquisition moves momentum from the body into the wheels.}
+\label{fig:sp_pair}
+\end{figure}
+
+The wheel plot (Fig.~\ref{fig:wheels}) has two distinct events. First, an
+acquisition transient: the wheels absorb the initial body momentum and
+briefly hit \SI{4.40}{N.m.s} total at \(t=\SI{65}{s}\), touching the
+per-axis \SI{4.0}{N.m.s} limit (the simulation computes the body torque
+from what the wheels can actually absorb, so this saturation is handled
+consistently). Second, the long, slow build-up from the secular solar
+pressure torque, unloaded magnetically with the cross-product law
 \begin{equation}
 \mathbf m = \frac{k_d}{\lVert\mathbf B\rVert^{2}}
             \left(\mathbf h_w \times \mathbf B\right)
 \qquad\Rightarrow\qquad
-\mathbf T_{\mathrm{mtq}} = -k_d\, \mathbf h_{w,\perp}.
+\mathbf T_{\mathrm{mtq}} = -k_d\, \mathbf h_{w,\perp},
 \label{eq:desat}
 \end{equation}
-The torque opposes the stored momentum, so the wheels spin down. The sign
-matters: with the cross product the other way round
-(\(\mathbf B \times \mathbf h_w\)), the same law \emph{adds} momentum
-instead of removing it (Sec.~\ref{sec:ai}). Because the field is weak away
-from perigee, the unloading happens mostly during perigee passes, which
-gives the slow saw-tooth in Fig.~\ref{fig:wheels}. Brief saturation at the
-\SI{4.0}{N.m.s} per-wheel limit is visible and is handled consistently:
-the torque applied to the body is computed from the momentum the wheels
-can actually absorb.
+once the stored momentum crosses the \SI{80}{\percent} trigger
+(\SI{3.2}{N.m.s}). Because the field is weak away from perigee, the
+unloading concentrates in the perigee passes; the run spends only
+\SI{0.1}{\percent} of its time above the trigger and ends at
+\SI{2.85}{N.m.s}. The sign in Eq.~\eqref{eq:desat} matters: with the cross
+product reversed the same law \emph{adds} momentum (Sec.~\ref{sec:ai}).
 
-\begin{figure}[h]
+\begin{figure}[H]
 \centering
-\includegraphics[width=0.86\textwidth]{sunpoint_rw_momentum.png}
-\caption{Stored wheel momentum with the desaturation trigger
-(\SI{3.2}{N.m.s}) and the per-wheel capacity (\SI{4.0}{N.m.s}).}
+\includegraphics[width=0.82\textwidth]{sunpoint_rw_momentum.png}
+\caption{Stored wheel momentum: acquisition transient to \SI{4.40}{N.m.s}
+at \SI{65}{s} (brief per-axis saturation), then the slow secular build-up
+with magnetic unloading around the \SI{3.2}{N.m.s} trigger.}
 \label{fig:wheels}
 \end{figure}
 
@@ -274,23 +418,29 @@ torque (\SI{4.5e-5}{N.m}) and air drag (\SI{7.6e-6}{N.m}, only below
 \SI{600}{km}) also peak at perigee. Solar pressure is the smallest
 (\SI{2.0e-6}{N.m}) but it is the only torque that does not average out
 over an orbit, so it alone sets how much momentum must be dumped per day:
-\SI{0.24}{N.m.s}. Figure~\ref{fig:budget} shows this directly: the
-per-orbit wiggle is momentum the wheels borrow and give back; the steady
-climb is what the magnetorquers must remove.
+\SI{0.24}{N.m.s}. No eclipse occurs during this particular 4-orbit window
+(the run starts at an epoch where the orbit plane faces the Sun), so the
+SRP trace has no drop-outs here; the GUI shades eclipse intervals whenever
+they occur. Figure~\ref{fig:budget} shows the budget directly: the
+per-orbit wiggle is momentum the wheels borrow and give back, the steady
+climb (\SI{0.433}{N.m.s} accumulated by the end) is what the magnetorquers
+must remove.
 
-\begin{figure}[h]
+\begin{figure}[H]
 \centering
-\includegraphics[width=0.86\textwidth]{sunpoint_disturbance_torque.png}
+\includegraphics[width=0.82\textwidth]{sunpoint_disturbance_torque.png}
 \caption{Disturbance torques along the orbit (log scale). Gravity gradient
-dominates at perigee; solar pressure carries the steady load near apogee.}
+dominates at perigee; solar pressure is smallest but carries the secular
+load.}
 \label{fig:dist}
 \end{figure}
 
-\begin{figure}[h]
+\begin{figure}[H]
 \centering
-\includegraphics[width=0.86\textwidth]{sunpoint_momentum_budget.png}
-\caption{Accumulated disturbance momentum. Wiggle = cyclic (wheels store
-it), climb = secular (torquers dump it).}
+\includegraphics[width=0.82\textwidth]{sunpoint_momentum_budget.png}
+\caption{Accumulated disturbance momentum: wiggle = cyclic (wheels store
+it), climb = secular (torquers dump it); \SI{0.433}{N.m.s} after four
+orbits, i.e.\ \SI{0.24}{N.m.s} per day.}
 \label{fig:budget}
 \end{figure}
 
@@ -310,24 +460,35 @@ fix pulls the estimate back and updates the bias estimate:
 \qquad
 \hat{\mathbf b} \leftarrow \hat{\mathbf b} - k_i\,\mathbf a / T .
 \end{equation}
-The filter learns the gyro bias from \SI{3.91}{} down to
-\SI{0.25}{\degree\per\hour}, and the knowledge error settles at the star
-tracker noise floor (Fig.~\ref{fig:det}).
 
-The resulting pointing budget, evaluated over the settled part of the run:
-knowledge error \ang{0.0045} RMS (budget \ang{0.01}, \textbf{pass}),
-control error \ang{0.0053} RMS (budget \ang{0.08}), total \ang{0.0098}
-against the \ang{0.1} allocation. One practical detail: during detumbling
-the bias update is paused. With \SI{20}{s} between star fixes at
-\SI{10}{\degree/s}, the spacecraft turns more than \ang{180} between
-fixes, so the measured residual no longer reflects the bias and would
-corrupt the estimate.
+Figure~\ref{fig:det} needs its transients read with numbers. The knowledge
+error starts at \ang{0.26} and briefly peaks at \ang{1.03} during the
+acquisition, when the fast rates stress the \SI{8}{s} gyro integration; it
+then settles at the star-tracker noise floor, \ang{0.0045} RMS over the
+converged tail. The bias-error curve starts around
+\SI{100}{\degree\per\hour}: the very first star fixes over-correct,
+because their residuals still contain acquisition motion rather than pure
+bias. The estimate recovers quickly, falls below
+\SI{1}{\degree\per\hour} within \SI{5.4}{min}, and converges to
+\SI{0.25}{\degree\per\hour}, a 15-fold improvement on the true
+\SI{3.91}{\degree\per\hour} bias magnitude.
 
-\begin{figure}[h]
+The resulting pointing budget over the settled part of the run: knowledge
+\ang{0.0045} RMS (budget \ang{0.01}, \textbf{pass}), control \ang{0.0053}
+RMS (budget \ang{0.08}), total \ang{0.0098} against the \ang{0.1}
+allocation. During detumbling the bias update is paused: with star fixes
+\SI{16}{s} apart at \SI{10}{\degree/s} the spacecraft turns by about
+\ang{160} between fixes, so the measured residual no longer reflects the
+bias and would corrupt the estimate.
+
+\begin{figure}[H]
 \centering
-\includegraphics[width=0.86\textwidth]{sunpoint_pointing_budget.png}
-\caption{Top: knowledge vs control error (log scale). Bottom: the gyro
-bias estimate converging.}
+\includegraphics[width=0.82\textwidth]{sunpoint_pointing_budget.png}
+\caption{Top: knowledge vs control error (log scale); knowledge peaks at
+\ang{1.03} during acquisition, then holds \ang{0.0045} RMS. Bottom: the
+gyro-bias estimate; the initial \(\sim\)\SI{100}{\degree\per\hour} spike is
+the first fixes over-correcting during acquisition, converging to
+\SI{0.25}{\degree\per\hour}.}
 \label{fig:det}
 \end{figure}
 
@@ -344,7 +505,7 @@ momentum \emph{into} the wheels instead of out (the correct form is
 Eq.~\eqref{eq:desat}); the initial pointing offset used \(\sin\theta\)
 where a quaternion needs the half angle \(\sin(\theta/2)\), so the start
 offset was twice what was configured; and the bias estimator diverged
-during detumbling because the spacecraft rotates more than \ang{180}
+during detumbling because the spacecraft rotates by roughly \ang{160}
 between star fixes.
 
 \textbf{Verification.} The AI wrote numerical checks that I ran and kept:
