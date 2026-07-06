@@ -11,6 +11,7 @@ from PyQt6.QtWidgets import (
 )
 
 from .plot_tabs.angular_velocity_tab import AngularVelocityTab
+from .plot_tabs.orientation_tab import OrientationTab
 from .plot_tabs.attitude_error_tab import AttitudeErrorTab
 from .plot_tabs.rw_momentum_tab import RWMomentumTab
 from .plot_tabs.disturbance_torque_tab import DisturbanceTorqueTab
@@ -49,6 +50,7 @@ class PlotPanel(QWidget):
         self.tab_widget = QTabWidget()
 
         self.angular_velocity_tab = AngularVelocityTab()
+        self.orientation_tab = OrientationTab()
         self.attitude_error_tab = AttitudeErrorTab()
         self.rw_momentum_tab = RWMomentumTab()
         self.disturbance_torque_tab = DisturbanceTorqueTab()
@@ -60,6 +62,8 @@ class PlotPanel(QWidget):
         tabs = [
             (self.angular_velocity_tab, "Angular Velocity",
              "Body rotation rate over time (shows detumbling)."),
+            (self.orientation_tab, "Orientation",
+             "Roll, pitch and yaw of the spacecraft over time."),
             (self.attitude_error_tab, "Pointing Error",
              "Angle between the spacecraft and its target direction."),
             (self.rw_momentum_tab, "Wheel Momentum",
@@ -92,9 +96,9 @@ class PlotPanel(QWidget):
 
     def update_results(self, result: dict):
         """Push a new ADCS simulation result to every plot tab."""
-        for tab in (self.angular_velocity_tab, self.attitude_error_tab,
-                    self.rw_momentum_tab, self.disturbance_torque_tab,
-                    self.angular_momentum_tab, self.momentum_budget_tab,
-                    self.determination_tab):
+        for tab in (self.angular_velocity_tab, self.orientation_tab,
+                    self.attitude_error_tab, self.rw_momentum_tab,
+                    self.disturbance_torque_tab, self.angular_momentum_tab,
+                    self.momentum_budget_tab, self.determination_tab):
             tab.refresh(result)
         self.resultsUpdated.emit()

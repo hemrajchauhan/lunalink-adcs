@@ -164,6 +164,7 @@ def simulate(params: ADCSParams) -> dict:
     omega_hist = np.zeros((steps, 3))
     hw_hist = np.zeros((steps, 3))
     euler_hist = np.zeros((steps, 3))
+    quat_hist = np.zeros((steps, 4))    # attitude history for the 3D view
     eclipse_hist = np.zeros(steps, dtype=bool)
     t_acquire = np.nan
 
@@ -291,6 +292,7 @@ def simulate(params: ADCSParams) -> dict:
         omega_hist[k] = np.degrees(omega)
         hw_hist[k] = hw
         euler_hist[k] = np.degrees(attitude.quat_to_euler321(q))
+        quat_hist[k] = q
         eclipse_hist[k] = eclipsed
 
     # Momentum budget + disturbance hierarchy (lecture Part 3).
@@ -361,6 +363,7 @@ def simulate(params: ADCSParams) -> dict:
         "wheel_momentum_mag_nms": logs["hw_mag"],
         "attitude_error_deg": logs["att_err"],
         "euler_deg": euler_hist,
+        "quaternion": quat_hist,
         "disturbance_nm": logs["T_dist"],
         "T_gg_nm": logs["T_gg"],
         "T_srp_nm": logs["T_srp"],
