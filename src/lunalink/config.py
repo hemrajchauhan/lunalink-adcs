@@ -18,10 +18,10 @@ MAIN_WINDOW_WIDTH = 2_000
 MAIN_WINDOW_HEIGHT = 1_200
 # Two columns: 3D scene | controls + plots (mission details live inside the
 # Mission tab).
-SCENE_WIDTH = 1_500
+SCENE_WIDTH = 1_400
 CENTER_WIDTH = MAIN_WINDOW_WIDTH - SCENE_WIDTH
 # In the centre column the controls stay compact so the plots get the room.
-CONTROL_PANEL_HEIGHT = 730
+CONTROL_PANEL_HEIGHT = 600
 PLOT_PANEL_HEIGHT = MAIN_WINDOW_HEIGHT - CONTROL_PANEL_HEIGHT
 
 # -----------------------------------------------------------------------------
