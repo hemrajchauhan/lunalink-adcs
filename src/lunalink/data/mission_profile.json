@@ -1,0 +1,11 @@
+{
+    "orbit_type": "HEO, Molniya-type (500 × 36,000 km)",
+    "inclination_deg": 63.4,
+    "orbital_period_h": 12,
+    "power_budget_eol_kw": 1.2,
+    "design_lifetime_yr": 5,
+    "earth_downlink": "X-band · ≥ 100 Mbps",
+    "moon_uplink": "UHF · 400–512 MHz",
+    "ground_station": "Ottobrunn, Germany (48.07° N, 11.65° E)",
+    "min_elevation_deg": 5
+}

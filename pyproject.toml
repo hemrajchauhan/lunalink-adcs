@@ -1,7 +1,7 @@
 [project]
 name = "lunalink-adcs"
-version = "0.1.0"
-description = "Add your description here"
+version = "1.0.0"
+description = "LunaLink ADCS simulator: attitude dynamics, control and determination for a Molniya-orbit relay spacecraft (TUM Project X)"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
@@ -23,3 +23,6 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+lunalink = ["data/*.json", "gui/assets/*.svg"]

@@ -1,20 +1,165 @@
 [
-  {
-    "name": "Earth",
-    "radius_m": 6378137.0,
-    "position_m": [ 0.0, 0.0, 0.0 ],
-    "color": "royalblue"
-  },
-  {
-    "name": "Moon",
-    "radius_m": 1737400.0,
-    "position_m": [ 384400000.0, 0.0, 0.0 ],
-    "color": "lightgray"
-  },
-  {
-    "name": "Sun",
-    "radius_m": 695700000.0,
-    "position_m": [ 149597870700.0, 0.0, 0.0 ],
-    "color": "yellow"
-  }
+    {
+        "name": "Sun",
+        "color": "#ffd24d",
+        "radius_m": 695700000.0,
+        "axial_tilt_deg": 7.25,
+        "rotation_period_h": 609.12,
+        "has_ring": false,
+        "parent": null,
+        "orbit": null
+    },
+    {
+        "name": "Mercury",
+        "color": "#9c948c",
+        "radius_m": 2439700.0,
+        "axial_tilt_deg": 0.03,
+        "rotation_period_h": 1407.6,
+        "has_ring": false,
+        "parent": "Sun",
+        "orbit": {
+            "semi_major_axis_m": 57909000000.0,
+            "eccentricity": 0.2056,
+            "inclination_deg": 7.0,
+            "raan_deg": 48.3,
+            "arg_periapsis_deg": 29.1,
+            "mean_anomaly_epoch_deg": 174.8
+        }
+    },
+    {
+        "name": "Venus",
+        "color": "#d9b382",
+        "radius_m": 6051800.0,
+        "axial_tilt_deg": 177.4,
+        "rotation_period_h": -5832.5,
+        "has_ring": false,
+        "parent": "Sun",
+        "orbit": {
+            "semi_major_axis_m": 108160000000.0,
+            "eccentricity": 0.0068,
+            "inclination_deg": 3.39,
+            "raan_deg": 76.7,
+            "arg_periapsis_deg": 54.9,
+            "mean_anomaly_epoch_deg": 50.4
+        }
+    },
+    {
+        "name": "Earth",
+        "color": "#3b6fd6",
+        "radius_m": 6378137.0,
+        "axial_tilt_deg": 23.44,
+        "rotation_period_h": 23.93,
+        "has_ring": false,
+        "parent": "Sun",
+        "orbit": {
+            "semi_major_axis_m": 149597870700.0,
+            "eccentricity": 0.0167,
+            "inclination_deg": 0.0,
+            "raan_deg": 0.0,
+            "arg_periapsis_deg": 102.9,
+            "mean_anomaly_epoch_deg": 100.5
+        }
+    },
+    {
+        "name": "Moon",
+        "color": "#c8c8c8",
+        "radius_m": 1737400.0,
+        "axial_tilt_deg": 6.68,
+        "rotation_period_h": 655.7,
+        "has_ring": false,
+        "parent": "Earth",
+        "orbit": {
+            "semi_major_axis_m": 384400000.0,
+            "eccentricity": 0.0549,
+            "inclination_deg": 5.145,
+            "raan_deg": 0.0,
+            "arg_periapsis_deg": 0.0,
+            "mean_anomaly_epoch_deg": 0.0
+        }
+    },
+    {
+        "name": "Mars",
+        "color": "#c1440e",
+        "radius_m": 3389500.0,
+        "axial_tilt_deg": 25.19,
+        "rotation_period_h": 24.62,
+        "has_ring": false,
+        "parent": "Sun",
+        "orbit": {
+            "semi_major_axis_m": 227990000000.0,
+            "eccentricity": 0.0934,
+            "inclination_deg": 1.85,
+            "raan_deg": 49.6,
+            "arg_periapsis_deg": 286.5,
+            "mean_anomaly_epoch_deg": 19.4
+        }
+    },
+    {
+        "name": "Jupiter",
+        "color": "#d8a878",
+        "radius_m": 69911000.0,
+        "axial_tilt_deg": 3.13,
+        "rotation_period_h": 9.93,
+        "has_ring": false,
+        "parent": "Sun",
+        "orbit": {
+            "semi_major_axis_m": 778570000000.0,
+            "eccentricity": 0.0489,
+            "inclination_deg": 1.30,
+            "raan_deg": 100.5,
+            "arg_periapsis_deg": 273.9,
+            "mean_anomaly_epoch_deg": 19.7
+        }
+    },
+    {
+        "name": "Saturn",
+        "color": "#e3d9a6",
+        "radius_m": 58232000.0,
+        "axial_tilt_deg": 26.73,
+        "rotation_period_h": 10.7,
+        "has_ring": true,
+        "parent": "Sun",
+        "orbit": {
+            "semi_major_axis_m": 1433500000000.0,
+            "eccentricity": 0.0565,
+            "inclination_deg": 2.49,
+            "raan_deg": 113.7,
+            "arg_periapsis_deg": 339.4,
+            "mean_anomaly_epoch_deg": 317.0
+        }
+    },
+    {
+        "name": "Uranus",
+        "color": "#a7d8e0",
+        "radius_m": 25362000.0,
+        "axial_tilt_deg": 97.77,
+        "rotation_period_h": -17.24,
+        "has_ring": false,
+        "parent": "Sun",
+        "orbit": {
+            "semi_major_axis_m": 2872500000000.0,
+            "eccentricity": 0.0457,
+            "inclination_deg": 0.77,
+            "raan_deg": 74.0,
+            "arg_periapsis_deg": 96.7,
+            "mean_anomaly_epoch_deg": 142.2
+        }
+    },
+    {
+        "name": "Neptune",
+        "color": "#3f66c9",
+        "radius_m": 24622000.0,
+        "axial_tilt_deg": 28.32,
+        "rotation_period_h": 16.11,
+        "has_ring": false,
+        "parent": "Sun",
+        "orbit": {
+            "semi_major_axis_m": 4495100000000.0,
+            "eccentricity": 0.0113,
+            "inclination_deg": 1.77,
+            "raan_deg": 131.8,
+            "arg_periapsis_deg": 273.2,
+            "mean_anomaly_epoch_deg": 256.2
+        }
+    }
 ]
