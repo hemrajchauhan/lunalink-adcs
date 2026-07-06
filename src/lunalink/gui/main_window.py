@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import (
-    QMainWindow, QWidget, QSplitter, QVBoxLayout, QScrollArea,
+    QMainWindow, QWidget, QSplitter, QVBoxLayout, QScrollArea, QPushButton,
 )
 
 from PyQt6.QtCore import Qt
@@ -22,6 +22,7 @@ class MainWindow(QMainWindow):
 
         self._create_widgets()
         self._create_layout()
+        self._connect_results_visibility()
 
     def _create_widgets(self):
         self.pyvista_view = PyVistaView()
@@ -41,8 +42,7 @@ class MainWindow(QMainWindow):
         central_widget.setLayout(main_layout)
 
         # Two columns: the 3D scene on the left and the controls + plots on
-        # the right (the plots get a large, draggable share of the height).
-        # Mission details live inside the Mission tab.
+        # the right. Mission details live inside the Mission tab.
         #
         # Both right-hand sections sit in scroll areas so the window and the
         # splitter can be resized freely: when a section becomes smaller than
@@ -52,20 +52,63 @@ class MainWindow(QMainWindow):
         controls_scroll.setFrameShape(QScrollArea.Shape.NoFrame)
         controls_scroll.setWidget(self.control_panel)
 
-        plots_scroll = QScrollArea()
-        plots_scroll.setWidgetResizable(True)
-        plots_scroll.setFrameShape(QScrollArea.Shape.NoFrame)
-        plots_scroll.setWidget(self.plot_panel)
+        self.plots_scroll = QScrollArea()
+        self.plots_scroll.setWidgetResizable(True)
+        self.plots_scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        self.plots_scroll.setWidget(self.plot_panel)
 
-        right_splitter = QSplitter(Qt.Orientation.Vertical)
-        right_splitter.addWidget(controls_scroll)
-        right_splitter.addWidget(plots_scroll)
-        right_splitter.setSizes([CONTROL_PANEL_HEIGHT, PLOT_PANEL_HEIGHT])
-        right_splitter.setStretchFactor(1, 1)   # plots grow when the window does
+        # The results area starts hidden: before the first simulation run the
+        # plots are empty and would only take space away from the controls.
+        # After the panel is closed with its X button, a slim bar allows
+        # reopening it without re-running the simulation.
+        self.show_results_button = QPushButton("Show simulation results")
+        self.show_results_button.setToolTip(
+            "Reopen the results panel with the plots of the last run.")
+
+        self.results_area = QWidget()
+        results_layout = QVBoxLayout(self.results_area)
+        results_layout.setContentsMargins(0, 0, 0, 0)
+        results_layout.setSpacing(0)
+        results_layout.addWidget(self.show_results_button)
+        results_layout.addWidget(self.plots_scroll)
+        self.plots_scroll.hide()
+        self.show_results_button.hide()
+        # Hide the whole container until the first run: a hidden splitter
+        # child receives no space, so the control panel gets the full column.
+        self.results_area.hide()
+
+        self.right_splitter = QSplitter(Qt.Orientation.Vertical)
+        self.right_splitter.addWidget(controls_scroll)
+        self.right_splitter.addWidget(self.results_area)
+        self.right_splitter.setStretchFactor(1, 1)
 
         horizontal_splitter = QSplitter(Qt.Orientation.Horizontal)
         horizontal_splitter.addWidget(self.pyvista_view)
-        horizontal_splitter.addWidget(right_splitter)
+        horizontal_splitter.addWidget(self.right_splitter)
         horizontal_splitter.setSizes([SCENE_WIDTH, CENTER_WIDTH])
 
         main_layout.addWidget(horizontal_splitter)
+
+    # -- results panel visibility -------------------------------------------
+    def _connect_results_visibility(self):
+        self.plot_panel.resultsUpdated.connect(self._show_results)
+        self.plot_panel.closeRequested.connect(self._hide_results)
+        self.show_results_button.clicked.connect(self._show_results)
+
+    def _show_results(self):
+        """Open the results panel (after a run, or via the reopen bar)."""
+        self.show_results_button.hide()
+        self.plots_scroll.show()
+        self.results_area.show()
+        self.right_splitter.setSizes([CONTROL_PANEL_HEIGHT, PLOT_PANEL_HEIGHT])
+
+    def _hide_results(self):
+        """Collapse the results panel to a slim reopen bar; the control
+        panel takes over the freed space."""
+        self.plots_scroll.hide()
+        self.show_results_button.show()
+        # Shrink the results slot to exactly the bar height so the control
+        # panel is fully visible again.
+        bar_height = self.show_results_button.sizeHint().height() + 4
+        total = sum(self.right_splitter.sizes())
+        self.right_splitter.setSizes([max(total - bar_height, 1), bar_height])
