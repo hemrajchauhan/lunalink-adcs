@@ -37,6 +37,10 @@
 \graphicspath{{./}}
 \captionsetup{font=small,labelfont=bf,skip=3pt}
 \setlength{\parskip}{3pt}
+% Tighter vertical space around the [H]-placed figures to keep the page count
+% down without shrinking the text.
+\setlength{\textfloatsep}{7pt plus 2pt minus 2pt}
+\setlength{\intextsep}{7pt plus 2pt minus 2pt}
 \sisetup{per-mode=symbol}
 
 % Ragged-right paragraph columns: narrow justified columns produce uneven
@@ -106,10 +110,14 @@ Kepler's equation at every step. Both required scenarios run for
 \textbf{4 full orbits} (\SI{42.7}{h} of simulated time), which satisfies
 the brief's requirement of at least 3 orbits and at least \SI{36}{h}.
 
-Two programs produce the results: a PyQt6 GUI with a 3D orbit view,
-adjustable parameters and live plots, and a headless script
-(\texttt{main\_simulation.py}) that produces every figure in this report
-with one command.
+Two programs produce the results: a PyQt6 GUI and a headless script. The
+GUI has a 3D view with adjustable parameters and live plots, and it
+animates the simulated attitude directly. After a run the spacecraft
+replays its orientation, a body-axis triad rotating from the initial
+tumble to the final pointing before returning to a plain marker when the
+replay is complete, so the behaviour can be watched as it settles around
+the orbit. The headless script (\texttt{main\_simulation.py}) produces
+every figure in this report with one command.
 
 % -------------------------------------------------------------------------
 \section{Assumptions}
@@ -288,11 +296,30 @@ detumbling or use thrusters for the initial rate reduction.
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.82\textwidth]{detumble_angular_velocity.png}
+\includegraphics[width=0.64\textwidth]{detumble_angular_velocity.png}
 \caption{Detumbling. The rotation rate decreases in one step per perigee
 pass: 10.09, 8.73, 7.84, 7.25 and \SI{6.77}{\degree/s} at the orbit
 marks.}
 \label{fig:detumble}
+\end{figure}
+
+The orientation over the same window (Fig.~\ref{fig:dt_orient}) shows the
+tumble directly, and is the attitude the 3D view animates for this run.
+Because the spacecraft never stops rotating within the four orbits, the
+roll angle sweeps continuously and wraps between \(+\ang{180}\) and
+\(-\ang{180}\); the near-vertical jumps are that wrap-around, not physical
+motion. Pitch and yaw oscillate within bands that narrow slowly as the rate
+decays, the same gradual progress the rate and momentum plots show, seen
+here as the attitude rather than as a scalar.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.64\textwidth]{detumble_orientation.png}
+\caption{Spacecraft orientation (3-2-1 Euler angles) during detumbling. The
+roll angle wraps continuously between \(\pm\ang{180}\) as the body keeps
+rotating; pitch and yaw oscillate in bands that narrow slowly as the rate
+decays.}
+\label{fig:dt_orient}
 \end{figure}
 
 The clearest measure of progress is the total angular momentum, which
@@ -309,11 +336,11 @@ any case.
 
 \begin{figure}[H]
 \centering
-\begin{subfigure}{0.49\textwidth}
+\begin{subfigure}{0.46\textwidth}
   \includegraphics[width=\textwidth]{detumble_angular_momentum.png}
   \caption{Total angular momentum.}
 \end{subfigure}\hfill
-\begin{subfigure}{0.49\textwidth}
+\begin{subfigure}{0.46\textwidth}
   \includegraphics[width=\textwidth]{detumble_rw_momentum.png}
   \caption{Wheel momentum (exactly zero).}
 \end{subfigure}
@@ -337,11 +364,11 @@ pass.
 
 \begin{figure}[H]
 \centering
-\begin{subfigure}{0.49\textwidth}
+\begin{subfigure}{0.46\textwidth}
   \includegraphics[width=\textwidth]{detumble_attitude_error.png}
   \caption{Angle to the Sun direction.}
 \end{subfigure}\hfill
-\begin{subfigure}{0.49\textwidth}
+\begin{subfigure}{0.46\textwidth}
   \includegraphics[width=\textwidth]{detumble_disturbance_torque.png}
   \caption{Disturbance torques (log scale).}
 \end{subfigure}
@@ -351,6 +378,25 @@ is expected. (b) Perigee peaks as in the pointing scenario; the drag peak
 is higher because the tumbling body also presents its largest face to the
 airflow.}
 \label{fig:dt_pair2}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}{0.46\textwidth}
+  \includegraphics[width=\textwidth]{detumble_momentum_budget.png}
+  \caption{Accumulated disturbance momentum.}
+\end{subfigure}\hfill
+\begin{subfigure}{0.46\textwidth}
+  \includegraphics[width=\textwidth]{detumble_pointing_budget.png}
+  \caption{Estimator during detumbling.}
+\end{subfigure}
+\caption{Detumbling, budget and estimator view. (a) Only
+\SI{0.058}{N.m.s} accumulate, because the tumbling motion averages most
+of the disturbance away. (b) Knowledge error up to \ang{13.7} between
+star-tracker measurements; the bias estimate remains at
+\SI{3.91}{\degree\per\hour} because bias estimation is suspended at high
+rates.}
+\label{fig:dt_pair3}
 \end{figure}
 
 The remaining pair (Fig.~\ref{fig:dt_pair3}) completes the overview. The
@@ -366,25 +412,6 @@ measurement then corrects. The bias-error curve remains constant at
 star-tracker measurement cannot separate gyro bias from rotation, so the
 filter suspends bias estimation (Sec.~\ref{sec:determination}) and
 resumes it automatically once the rotation is slow.
-
-\begin{figure}[H]
-\centering
-\begin{subfigure}{0.49\textwidth}
-  \includegraphics[width=\textwidth]{detumble_momentum_budget.png}
-  \caption{Accumulated disturbance momentum.}
-\end{subfigure}\hfill
-\begin{subfigure}{0.49\textwidth}
-  \includegraphics[width=\textwidth]{detumble_pointing_budget.png}
-  \caption{Estimator during detumbling.}
-\end{subfigure}
-\caption{Detumbling, budget and estimator view. (a) Only
-\SI{0.058}{N.m.s} accumulate, because the tumbling motion averages most
-of the disturbance away. (b) Knowledge error up to \ang{13.7} between
-star-tracker measurements; the bias estimate remains at
-\SI{3.91}{\degree\per\hour} because bias estimation is suspended at high
-rates.}
-\label{fig:dt_pair3}
-\end{figure}
 
 \subsection{Scenario 2: sun pointing (4 orbits)}
 
@@ -420,7 +447,7 @@ four orders of magnitude below the peak.
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.82\textwidth]{sunpoint_attitude_error.png}
+\includegraphics[width=0.64\textwidth]{sunpoint_attitude_error.png}
 \caption{Sun-pointing error. First sample \ang{20.18}; maximum \ang{37.0}
 at \SI{40}{s}, while the torque-limited wheels absorb the initial
 rotation; below \ang{0.1} after \SI{5.1}{min}; thereafter a mean of
@@ -442,11 +469,11 @@ afterwards changes only slowly through external torques, ending at
 
 \begin{figure}[H]
 \centering
-\begin{subfigure}{0.49\textwidth}
+\begin{subfigure}{0.46\textwidth}
   \includegraphics[width=\textwidth]{sunpoint_angular_velocity.png}
   \caption{Rotation rate.}
 \end{subfigure}\hfill
-\begin{subfigure}{0.49\textwidth}
+\begin{subfigure}{0.46\textwidth}
   \includegraphics[width=\textwidth]{sunpoint_angular_momentum.png}
   \caption{Total angular momentum.}
 \end{subfigure}
@@ -455,6 +482,28 @@ first sample, below \SI{1.1e-4}{\degree/s} during the hold. (b) Momentum:
 3.28 to \SI{2.85}{N.m.s}; the acquisition transfers it from the body into
 the wheels.}
 \label{fig:sp_pair}
+\end{figure}
+
+The orientation itself confirms this. Figure~\ref{fig:sp_orient} plots the
+3-2-1 (roll, pitch, yaw) Euler angles of the body relative to the inertial
+frame, the same attitude the 3D view animates. In the first minutes the
+angles swing while the wheels null the initial rotation: roll drops from
+\ang{150} to \ang{113} and yaw jumps to about \ang{11}. Roll and pitch
+then hold those constant values for the rest of the run. Yaw is the one
+exception: it drifts slowly, by about \ang{2} over \SI{42}{h}, because it
+corresponds to the rotation about the Sun-pointing axis, which the
+controller does not command and therefore leaves free to wander under the
+residual disturbances. Two held angles and one slow drift are exactly what
+a steady Sun-pointing attitude looks like: the axis that must track the Sun
+is fixed, while the twist about it is unconstrained.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.64\textwidth]{sunpoint_orientation.png}
+\caption{Spacecraft orientation (3-2-1 Euler angles). Roll and pitch settle
+to constant values after the acquisition; yaw, the free rotation about the
+Sun-pointing axis, drifts about \ang{2} over the run.}
+\label{fig:sp_orient}
 \end{figure}
 
 The wheel plot (Fig.~\ref{fig:wheels}) contains two distinct events.
@@ -483,7 +532,7 @@ removing it (Sec.~\ref{sec:ai}).
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.82\textwidth]{sunpoint_rw_momentum.png}
+\includegraphics[width=0.64\textwidth]{sunpoint_rw_momentum.png}
 \caption{Stored wheel momentum. The acquisition peaks at \SI{4.40}{N.m.s}
 (\SI{65}{s}, brief per-wheel saturation); afterwards solar radiation
 pressure refills the wheels slowly and the magnetorquers unload them
@@ -512,7 +561,7 @@ shaded whenever they occur.
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.82\textwidth]{sunpoint_disturbance_torque.png}
+\includegraphics[width=0.64\textwidth]{sunpoint_disturbance_torque.png}
 \caption{Disturbance torques along the orbit (log scale). Gravity
 gradient dominates at perigee; solar radiation pressure is the smallest
 contribution but the only one that accumulates.}
@@ -528,7 +577,7 @@ the growing share determines the magnetorquer requirement.
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.82\textwidth]{sunpoint_momentum_budget.png}
+\includegraphics[width=0.64\textwidth]{sunpoint_momentum_budget.png}
 \caption{Accumulated disturbance momentum. The per-orbit oscillation is
 stored and returned by the wheels; the steady growth, \SI{0.433}{N.m.s}
 over four orbits, must be removed by the magnetorquers.}
@@ -568,17 +617,9 @@ quickly, falls below \SI{1}{\degree\per\hour} within \SI{5.4}{min}, and
 converges to \SI{0.25}{\degree\per\hour}, a factor of fifteen below the
 uncorrected bias of \SI{3.91}{\degree\per\hour}.
 
-The resulting pointing budget, evaluated over the settled part of the
-run: knowledge error \ang{0.0045} RMS (budget \ang{0.01},
-\textbf{pass}), control error \ang{0.0053} RMS (budget \ang{0.08}),
-total \ang{0.0098} against the \ang{0.1} allocation. During detumbling
-the bias update is suspended: with measurements \SI{16}{s} apart at
-\SI{10}{\degree/s}, the spacecraft rotates by about \ang{160} between
-measurements, and a residual of that size no longer measures bias.
-
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.82\textwidth]{sunpoint_pointing_budget.png}
+\includegraphics[width=0.64\textwidth]{sunpoint_pointing_budget.png}
 \caption{Top: knowledge and control error (log scale); the knowledge
 error reaches \ang{1.03} during the acquisition and then holds
 \ang{0.0045} RMS. Bottom: the gyro-bias estimate; the initial values near
@@ -587,6 +628,14 @@ over-correcting during the acquisition, before convergence to
 \SI{0.25}{\degree\per\hour}.}
 \label{fig:det}
 \end{figure}
+
+The resulting pointing budget, evaluated over the settled part of the
+run: knowledge error \ang{0.0045} RMS (budget \ang{0.01},
+\textbf{pass}), control error \ang{0.0053} RMS (budget \ang{0.08}),
+total \ang{0.0098} against the \ang{0.1} allocation. During detumbling
+the bias update is suspended: with measurements \SI{16}{s} apart at
+\SI{10}{\degree/s}, the spacecraft rotates by about \ang{160} between
+measurements, and a residual of that size no longer measures bias.
 
 % -------------------------------------------------------------------------
 \section{How AI was used}\label{sec:ai}

@@ -30,9 +30,10 @@ class MainWindow(QMainWindow):
         self.control_panel = ControlPanel(self.scene_manager)
         self.plot_panel = PlotPanel()
 
-        # Connect the ADCS control tab to the plot panel via the simulation.
+        # Connect the ADCS control tab to the plot panel and the 3D scene
+        # (the scene animates the simulated attitude) via the simulation.
         self.controller = SimulationController(
-            self.control_panel.adcs_tab, self.plot_panel)
+            self.control_panel.adcs_tab, self.plot_panel, self.scene_manager)
 
     def _create_layout(self):
         central_widget = QWidget()

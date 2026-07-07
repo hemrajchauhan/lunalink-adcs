@@ -174,6 +174,12 @@ class ADCSTab(QWidget):
                 spin.setValue(float(val))
                 spin.blockSignals(False)
 
+    @property
+    def current_satellite_name(self) -> str | None:
+        """Name of the spacecraft of the selected mission (drives the 3D
+        attitude animation after a run)."""
+        return self._satellite.name if self._satellite is not None else None
+
     def select_mission(self, name):
         self._reload_missions()
         if name:

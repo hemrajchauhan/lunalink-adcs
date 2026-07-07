@@ -5,6 +5,7 @@ from PyQt6.QtCore import QTimer
 from ...simulation.system import SolarSystem
 from ...simulation.objects import Satellite
 from ...simulation.physics import orbit
+from ...simulation.physics.attitude import quat_to_matrix
 from .transforms import VisualizationTransform
 from .camera_manager import CameraManager
 from ... import config
@@ -30,6 +31,19 @@ class SceneManager:
         self.body_actors = {}
         self.satellite_actors = {}
         self.orbit_actors = {}            # name -> (actor, parent_name)
+        # Simulated attitude: name -> (t_s array, quaternion array). When
+        # present, the satellite mesh is rotated to the simulated attitude
+        # each frame and a body-axes triad is drawn on it.
+        self.attitude_history = {}
+        self._axes_actors = {}            # name -> [x, y, z line actors]
+        # Dedicated attitude-playback clock (separate from the orbit animation
+        # so the orientation replays at a fixed, watchable pace).
+        self._playback_timer = QTimer()
+        self._playback_timer.timeout.connect(self._on_playback_tick)
+        self._playback = None
+        # The most recent simulated attitude, kept so it can be replayed on
+        # demand (the Replay button) after it has reverted to a plain box.
+        self._last_attitude = None        # (name, t_s, quaternions)
         self.display_radius = {}
         self.child_scale = {}             # name -> metres->units scale for moons/sats
         self.scene_positions = {}
@@ -118,11 +132,19 @@ class SceneManager:
         self.body_actors.clear()
         self.satellite_actors.clear()
         self.orbit_actors.clear()
+        self._axes_actors.clear()
         self.display_radius.clear()
         self.child_scale.clear()
         self.scene_positions.clear()
         self._label_poly = None
         self.setup_scene()
+        # Restore body-axes triads for satellites that still exist and have
+        # a simulated attitude attached.
+        for name in list(self.attitude_history):
+            if name in self.satellite_actors:
+                self._ensure_axes_actors(name)
+            else:
+                del self.attitude_history[name]
         self.plotter.render()
         if was_running:                 # keep animating after an edit/delete
             self.start_animation()
@@ -291,6 +313,145 @@ class SceneManager:
         actor.orientation = (body.axial_tilt_deg, 0.0, spin)
 
     # =====================================================================
+    #  Simulated attitude (orientation animation)
+    # =====================================================================
+    def set_attitude_history(self, name: str, t_s, quaternions):
+        """Attach a simulated attitude history to a satellite.
+
+        ``t_s`` are simulation times (s) and ``quaternions`` the matching
+        scalar-last body-from-inertial quaternions produced by the ADCS
+        simulation. From then on the satellite mesh rotates to the simulated
+        attitude as the 3D clock advances (holding the last attitude beyond
+        the end of the run), and a red/green/blue body-axes triad shows the
+        orientation directly.
+        """
+        if name not in self.satellite_actors:
+            return
+        t_arr = np.asarray(t_s, dtype=float)
+        quat_arr = np.asarray(quaternions, dtype=float)
+        self.attitude_history[name] = (t_arr, quat_arr)
+        self._last_attitude = (name, t_arr, quat_arr)
+        self._ensure_axes_actors(name)
+        self._refresh_actor_transforms()
+        self.plotter.render()
+
+    def can_replay(self) -> bool:
+        """True if there is a stored attitude run to replay."""
+        return self._last_attitude is not None
+
+    def replay_last(self):
+        """Replay the most recent simulated attitude (the Replay button),
+        without re-running the simulation."""
+        if self._last_attitude is None:
+            return
+        name, t_arr, quat_arr = self._last_attitude
+        if name not in self.satellite_actors:
+            return
+        self.set_attitude_history(name, t_arr, quat_arr)
+        self.play_attitude(name)
+
+    def play_attitude(self, name: str):
+        """Replay this satellite's simulated attitude from start to finish over
+        a fixed, watchable duration (``ATTITUDE_PLAYBACK_SECONDS``), independent
+        of the orbit-view speed slider. The satellite shows a body-axes triad
+        and rotates through the run; when the replay finishes it reverts to a
+        plain box so the user can see the depiction is complete."""
+        if name not in self.attitude_history:
+            return
+        t_arr, _ = self.attitude_history[name]
+        if len(t_arr) < 2:
+            return
+        # Pause the normal orbit animation; the playback clock drives the scene.
+        self._timer.stop()
+        self._playback = {
+            "name": name,
+            "t0": float(t_arr[0]),
+            "t1": float(t_arr[-1]),
+            "elapsed": 0.0,
+            "duration": max(float(config.ATTITUDE_PLAYBACK_SECONDS), 0.1),
+        }
+        self.sim_time_s = self._playback["t0"]
+        self._update_positions(self.sim_time_s)
+        self._refresh_actor_transforms()
+        self.plotter.render()
+        self._playback_timer.start(int(1000 / ANIMATION_FPS))
+
+    def _on_playback_tick(self):
+        pb = self._playback
+        if pb is None:
+            self._playback_timer.stop()
+            return
+        pb["elapsed"] += 1.0 / ANIMATION_FPS
+        frac = pb["elapsed"] / pb["duration"]
+        if frac >= 1.0:
+            # Land exactly on the final attitude, then revert to a plain box.
+            self.sim_time_s = pb["t1"]
+            self._update_positions(self.sim_time_s)
+            self._refresh_actor_transforms()
+            self._finish_playback()
+            return
+        # Sweep the whole run: the satellite travels its orbit(s) AND rotates,
+        # so the tumble is seen settling as the spacecraft goes around.
+        self.sim_time_s = pb["t0"] + frac * (pb["t1"] - pb["t0"])
+        self._update_positions(self.sim_time_s)
+        self._refresh_actor_transforms()
+        self.plotter.render()
+
+    def _finish_playback(self):
+        """End the attitude replay: drop the axes triad and show the satellite
+        as a plain box again, then resume the normal orbit animation."""
+        name = self._playback["name"] if self._playback else None
+        self._playback_timer.stop()
+        self._playback = None
+        if name is not None:
+            self._clear_attitude(name)
+        self.plotter.render()
+        self.start_animation()
+
+    def _clear_attitude(self, name: str):
+        """Remove a satellite's simulated attitude and its axes triad, reverting
+        the mesh to a plain, unrotated box at its orbital position."""
+        self.attitude_history.pop(name, None)
+        for axis_actor in self._axes_actors.pop(name, ()):
+            try:
+                self.plotter.remove_actor(axis_actor)
+            except Exception:
+                pass
+        actor = self.satellite_actors.get(name)
+        if actor is not None:
+            actor.user_matrix = np.eye(4)
+            if name in self.scene_positions:
+                actor.position = tuple(self.scene_positions[name])
+
+    def _ensure_axes_actors(self, name):
+        """Create (or re-create) the body-axes triad for a satellite."""
+        length = SATELLITE_DISPLAY_SIZE * config.SATELLITE_AXES_LENGTH_FACTOR
+        actors = []
+        for axis, direction, color in (("x", (1, 0, 0), "#ff6b6b"),
+                                       ("y", (0, 1, 0), "#4ecf7d"),
+                                       ("z", (0, 0, 1), "#5b9bff")):
+            line = pv.Line((0.0, 0.0, 0.0),
+                           tuple(np.asarray(direction, float) * length))
+            actor = self.plotter.add_mesh(
+                line, color=color, line_width=3, lighting=False,
+                name=f"{name}_axis_{axis}", pickable=False)
+            actors.append(actor)
+        self._axes_actors[name] = actors
+
+    def _attitude_matrix(self, name, position):
+        """4x4 world transform for a satellite with simulated attitude:
+        rotation = inertial-from-body (transpose of the simulated
+        body-from-inertial matrix), translation = scene position."""
+        t_arr, quats = self.attitude_history[name]
+        index = int(np.searchsorted(t_arr, self.sim_time_s))
+        index = min(max(index, 0), len(t_arr) - 1)
+        R_bi = quat_to_matrix(quats[index])
+        M = np.eye(4)
+        M[:3, :3] = R_bi.T
+        M[:3, 3] = position
+        return M
+
+    # =====================================================================
     #  Animation + time controls
     # =====================================================================
     def start_animation(self):
@@ -337,7 +498,16 @@ class SceneManager:
                 if extra is not None:
                     extra.position = tuple(self.scene_positions[name])
         for name, actor in self.satellite_actors.items():
-            actor.position = tuple(self.scene_positions[name])
+            position = self.scene_positions[name]
+            if name in self.attitude_history:
+                # Rotate the mesh (and its axes triad) to the simulated
+                # attitude; the transform also carries the translation.
+                matrix = self._attitude_matrix(name, position)
+                actor.user_matrix = matrix
+                for axis_actor in self._axes_actors.get(name, ()):
+                    axis_actor.user_matrix = matrix
+            else:
+                actor.position = tuple(position)
         for name, (actor, parent) in self.orbit_actors.items():
             actor.position = tuple(self.scene_positions.get(parent, np.zeros(3)))
         self._update_labels()

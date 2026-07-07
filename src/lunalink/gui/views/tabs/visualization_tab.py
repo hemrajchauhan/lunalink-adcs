@@ -54,6 +54,17 @@ class VisualizationTab(QWidget):
         form.addRow("", self.epoch_button)
         layout.addWidget(playback)
 
+        replay = QGroupBox("Attitude Replay")
+        rlayout = QVBoxLayout(replay)
+        self.replay_button = QPushButton("Replay last simulation")
+        self.replay_button.setToolTip(
+            "Replay the orientation of the most recent ADCS run: the satellite "
+            "shows its body axes and rotates through the manoeuvre as it travels "
+            "its orbit, then returns to a plain box when the replay is complete.")
+        self.replay_button.clicked.connect(self._replay_attitude)
+        rlayout.addWidget(self.replay_button)
+        layout.addWidget(replay)
+
         inspect = QGroupBox("Inspect an Object")
         ilayout = QVBoxLayout(inspect)
         tip = QLabel("Open the Objects tab and double-click any object to centre "
@@ -114,6 +125,11 @@ class VisualizationTab(QWidget):
     def _toggle_play(self):
         running = self.scene_manager.toggle_animation()
         self.play_button.setText("⏸ Pause" if running else "▶ Play")
+
+    def _replay_attitude(self):
+        if self.scene_manager.can_replay():
+            self.scene_manager.replay_last()
+            self.play_button.setText("⏸ Pause")
 
     def _go_to_today(self):
         now = datetime.datetime.now(datetime.timezone.utc)

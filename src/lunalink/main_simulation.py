@@ -115,6 +115,17 @@ def run(output_dir: str = "output", params: ADCSParams = None,
         a2.grid(alpha=0.3)
         save(fig, "pointing_budget")
 
+    # 8. Spacecraft orientation (roll/pitch/yaw Euler angles) - the attitude
+    #    itself, i.e. what the 3D view animates.
+    fig, ax = plt.subplots(figsize=(8, 4))
+    euler = result["euler_deg"]
+    for i, name in enumerate(("roll", "pitch", "yaw")):
+        ax.plot(t, euler[:, i], linewidth=0.9, label=name)
+    ax.set(xlabel="Time [h]", ylabel="Euler angle [°]",
+           title="Spacecraft orientation (3-2-1 roll, pitch, yaw)")
+    ax.legend(); ax.grid(alpha=0.3)
+    save(fig, "orientation")
+
     acquire = result.get("t_acquire_h")
     budget = result.get("momentum_budget", {})
     print("ADCS simulation complete.")
