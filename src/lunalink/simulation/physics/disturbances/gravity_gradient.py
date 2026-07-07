@@ -10,9 +10,9 @@ from ..constants import GM_EARTH
 
 
 def gravity_gradient(R_bi: np.ndarray, r_eci: np.ndarray,
-                     inertia: np.ndarray) -> np.ndarray:
+                     inertia: np.ndarray, mu: float = GM_EARTH) -> np.ndarray:
     R = np.linalg.norm(r_eci)
     if R == 0:
         return np.zeros(3)
     n_body = R_bi @ (r_eci / R)            # nadir direction in body axes
-    return 3.0 * GM_EARTH / R ** 3 * np.cross(n_body, inertia * n_body)
+    return 3.0 * mu / R ** 3 * np.cross(n_body, inertia * n_body)

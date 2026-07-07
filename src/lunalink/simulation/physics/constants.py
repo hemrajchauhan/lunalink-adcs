@@ -5,6 +5,10 @@ live in code (one source of truth). Tunable mission, orbit, spacecraft and
 simulation parameters live in the JSON data files instead.
 """
 
+# Newton's gravitational constant, used to turn a user-supplied body mass into a
+# standard gravitational parameter mu = G*M for custom central bodies.
+G_CONST = 6.674_30e-11           # m^3 kg^-1 s^-2
+
 # Gravitational parameters mu = G*M  (m^3 / s^2)
 GM_SUN = 1.327_124_400_18e20
 GM_EARTH = 3.986_004_418e14

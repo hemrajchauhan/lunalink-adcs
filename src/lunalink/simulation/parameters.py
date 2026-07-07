@@ -65,6 +65,22 @@ class ADCSParams:
     estimator_kp: float = None
     estimator_ki: float = None
     estimator_seed: int = None
+    # Central-body environment (the body the satellite orbits). Resolved from the
+    # satellite's parent so the simulation works around any planet or moon, not
+    # just Earth. Defaults are Earth's values for backward compatibility.
+    central_mu: float = None
+    central_radius_m: float = None
+    central_dipole_tm3: float = None
+    central_atmos_rho0: float = None
+    central_atmos_ref_alt_m: float = None
+    central_atmos_scale_height_m: float = None
+    central_solar_flux_scale: float = None   # (1 AU / heliocentric distance)^2
+    # Sun-orbit elements of the parent's heliocentric ancestor, used to point the
+    # Sun direction from the actual heliocentric position. ``None`` keeps the
+    # validated analytic model (for Earth and Earth's moon), so the report is
+    # unchanged; set for satellites around other planets.
+    central_helio_elements: tuple = None
+    central_j2: float = None                 # oblateness coefficient of the parent
 
     # -- derived --------------------------------------------------------
     def get_inertia(self) -> np.ndarray:
@@ -103,7 +119,77 @@ class ADCSParams:
                          inclination_deg=o.inclination_deg, raan_deg=o.raan_deg,
                          arg_periapsis_deg=o.arg_periapsis_deg,
                          mean_anomaly_epoch_deg=o.mean_anomaly_epoch_deg)
+            # Resolve the central body's physical environment from the parent.
+            p.update(resolve_central_body(getattr(satellite, "parent", None)))
         return cls.from_dict(p)
+
+
+def resolve_central_body(parent_name: str | None) -> dict:
+    """Physical environment of the body a satellite orbits, so the simulation is
+    correct around any planet or moon (not just Earth).
+
+    Gravitational parameter comes from the built-in table for the known bodies
+    (keeping Earth exact) or from ``G*mass`` for a user-added custom body. Radius,
+    magnetic dipole and atmosphere come from the body record; a body with no
+    dipole and no atmosphere (the default) is treated as field-free and airless.
+    """
+    from .physics.constants import (
+        GM_BODIES, GM_EARTH, R_EARTH_M, GEOMAG_DIPOLE_TM3, G_CONST, AU_M, J2)
+    from .repositories.body_repository import BodyRepository
+
+    repo = BodyRepository()
+    body = repo.get_by_name(parent_name) if parent_name else None
+    if parent_name in GM_BODIES:
+        mu = GM_BODIES[parent_name]                       # exact for known bodies
+    elif body is not None and body.mass_kg > 0:
+        mu = G_CONST * body.mass_kg                        # custom body
+    else:
+        mu = GM_EARTH
+    # Sunlight at the central body's distance from the Sun scales the SRP torque
+    # (Phi ~ 1/d^2), so a Mars satellite feels weaker sunlight than an Earth one.
+    ancestor = _heliocentric_ancestor(body, repo)
+    if ancestor is not None and ancestor.orbit is not None:
+        flux_scale = (AU_M / ancestor.orbit.semi_major_axis_m) ** 2
+    else:
+        flux_scale = 1.0
+    # The Sun direction is taken from the ancestor's heliocentric position, except
+    # for Earth (and its moon), which keep the validated analytic Sun model.
+    helio = None
+    if ancestor is not None and ancestor.name != "Earth" and ancestor.orbit is not None:
+        o = ancestor.orbit
+        helio = (o.semi_major_axis_m, o.eccentricity, o.inclination_deg,
+                 o.raan_deg, o.arg_periapsis_deg, o.mean_anomaly_epoch_deg)
+    if body is not None:
+        return {
+            "central_mu": mu,
+            "central_radius_m": body.radius_m,
+            "central_dipole_tm3": body.magnetic_dipole_tm3,
+            "central_atmos_rho0": body.atmosphere_ref_density_kg_m3,
+            "central_atmos_ref_alt_m": body.atmosphere_ref_altitude_m,
+            "central_atmos_scale_height_m": body.atmosphere_scale_height_m,
+            "central_solar_flux_scale": flux_scale,
+            "central_helio_elements": helio,
+            "central_j2": body.j2,
+        }
+    # No body record (e.g. tests): fall back to Earth's environment.
+    return {
+        "central_mu": mu, "central_radius_m": R_EARTH_M,
+        "central_dipole_tm3": GEOMAG_DIPOLE_TM3,
+        "central_atmos_rho0": 1e-12, "central_atmos_ref_alt_m": 500_000.0,
+        "central_atmos_scale_height_m": 60_000.0,
+        "central_solar_flux_scale": 1.0, "central_helio_elements": None,
+        "central_j2": J2,
+    }
+
+
+def _heliocentric_ancestor(body, repo, _depth: int = 0):
+    """Walk up ``body``'s parents to the body that orbits the Sun (so a moon
+    resolves to its planet). Returns that body, or ``None`` if not found."""
+    if body is None or _depth > 12:
+        return None
+    if body.parent in (None, "Sun"):
+        return body
+    return _heliocentric_ancestor(repo.get_by_name(body.parent), repo, _depth + 1)
 
 
 def default_params(satellite_name: str = None, **overrides) -> ADCSParams:

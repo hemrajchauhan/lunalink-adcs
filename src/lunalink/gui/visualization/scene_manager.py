@@ -41,6 +41,10 @@ class SceneManager:
         self._playback_timer = QTimer()
         self._playback_timer.timeout.connect(self._on_playback_tick)
         self._playback = None
+        # Real seconds the whole attitude run is replayed over. Lower = faster.
+        # Set live by the Visualization tab's replay-speed slider, and used by
+        # both the first playback after a run and every Replay.
+        self._attitude_playback_seconds = float(config.ATTITUDE_PLAYBACK_SECONDS)
         # The most recent simulated attitude, kept so it can be replayed on
         # demand (the Replay button) after it has reverted to a plain box.
         self._last_attitude = None        # (name, t_s, quaternions)
@@ -350,12 +354,17 @@ class SceneManager:
         self.set_attitude_history(name, t_arr, quat_arr)
         self.play_attitude(name)
 
+    def set_attitude_playback_seconds(self, seconds: float):
+        """Set how many real seconds the whole attitude run replays over (lower
+        is faster). Takes effect live, including during an active replay."""
+        self._attitude_playback_seconds = max(float(seconds), 0.1)
+
     def play_attitude(self, name: str):
-        """Replay this satellite's simulated attitude from start to finish over
-        a fixed, watchable duration (``ATTITUDE_PLAYBACK_SECONDS``), independent
-        of the orbit-view speed slider. The satellite shows a body-axes triad
-        and rotates through the run; when the replay finishes it reverts to a
-        plain box so the user can see the depiction is complete."""
+        """Replay this satellite's simulated attitude from start to finish at the
+        current replay speed (``set_attitude_playback_seconds``), independent of
+        the orbit-view speed slider. The satellite shows a body-axes triad and
+        rotates through the run; when the replay finishes it reverts to a plain
+        box so the user can see the depiction is complete."""
         if name not in self.attitude_history:
             return
         t_arr, _ = self.attitude_history[name]
@@ -367,8 +376,6 @@ class SceneManager:
             "name": name,
             "t0": float(t_arr[0]),
             "t1": float(t_arr[-1]),
-            "elapsed": 0.0,
-            "duration": max(float(config.ATTITUDE_PLAYBACK_SECONDS), 0.1),
         }
         self.sim_time_s = self._playback["t0"]
         self._update_positions(self.sim_time_s)
@@ -381,9 +388,12 @@ class SceneManager:
         if pb is None:
             self._playback_timer.stop()
             return
-        pb["elapsed"] += 1.0 / ANIMATION_FPS
-        frac = pb["elapsed"] / pb["duration"]
-        if frac >= 1.0:
+        # Rate-based sweep so the replay speed can change live: advance the
+        # attitude clock by the fraction of the run covered in one frame.
+        span = pb["t1"] - pb["t0"]
+        duration = max(self._attitude_playback_seconds, 0.1)
+        self.sim_time_s += span * (1.0 / ANIMATION_FPS) / duration
+        if self.sim_time_s >= pb["t1"]:
             # Land exactly on the final attitude, then revert to a plain box.
             self.sim_time_s = pb["t1"]
             self._update_positions(self.sim_time_s)
@@ -392,7 +402,6 @@ class SceneManager:
             return
         # Sweep the whole run: the satellite travels its orbit(s) AND rotates,
         # so the tumble is seen settling as the spacecraft goes around.
-        self.sim_time_s = pb["t0"] + frac * (pb["t1"] - pb["t0"])
         self._update_positions(self.sim_time_s)
         self._refresh_actor_transforms()
         self.plotter.render()

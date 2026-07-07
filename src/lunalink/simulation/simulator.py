@@ -9,7 +9,8 @@ file contains no tuning magic numbers.
 import numpy as np
 
 from .physics import orbit, attitude, environment, disturbances, determination
-from .physics.constants import GM_EARTH, R_EARTH_M, GEOMAG_DIPOLE_TM3
+from .physics.constants import GM_EARTH, R_EARTH_M, GEOMAG_DIPOLE_TM3, GM_SUN, J2
+from .objects import OrbitElements
 from .physics.dynamics import state_derivative
 from .physics.actuators import sizing_summary as _sizing_summary
 from .physics.control import (
@@ -71,15 +72,26 @@ def _environment_at(elements, mu: float, params: ADCSParams, t: float) -> dict:
     frame): position/velocity, Sun direction, eclipse flag, geomagnetic field
     and atmospheric density (zero above the drag cut-off altitude)."""
     r, v = orbit.state_vectors_in_parent_frame(elements, mu, t)
-    sun = environment.sun_unit_vector(t)
-    altitude = np.linalg.norm(r) - R_EARTH_M
+    # Sun direction: from the parent's actual heliocentric position for satellites
+    # around other planets; the validated analytic model for Earth (and its moon).
+    if params.central_helio_elements is not None:
+        r_helio, _ = orbit.state_vectors_in_parent_frame(
+            OrbitElements(*params.central_helio_elements), GM_SUN, t)
+        n_helio = np.linalg.norm(r_helio)
+        sun = -r_helio / n_helio if n_helio > 0 else environment.sun_unit_vector(t)
+    else:
+        sun = environment.sun_unit_vector(t)
+    altitude = np.linalg.norm(r) - params.central_radius_m
     return {
         "r": r,
         "v": v,
         "sun": sun,
-        "eclipsed": environment.is_in_eclipse(r, sun),
-        "B_eci": environment.magnetic_field_eci(r),
-        "rho": (environment.atmospheric_density(altitude)
+        "eclipsed": environment.is_in_eclipse(r, sun, params.central_radius_m),
+        "B_eci": environment.magnetic_field_eci(r, params.central_dipole_tm3),
+        "rho": (environment.atmospheric_density(
+                    altitude, params.central_atmos_rho0,
+                    params.central_atmos_ref_alt_m,
+                    params.central_atmos_scale_height_m)
                 if altitude < params.drag_cutoff_altitude_m else 0.0),
     }
 
@@ -89,10 +101,10 @@ def _disturbance_torques(env: dict, R_bi: np.ndarray, B_body: np.ndarray,
                          D_res: np.ndarray, cp_offset: np.ndarray) -> dict:
     """All four disturbance torques (body frame, N m) plus their sum."""
     torques = {
-        "gg": disturbances.gravity_gradient(R_bi, env["r"], I),
+        "gg": disturbances.gravity_gradient(R_bi, env["r"], I, params.central_mu),
         "srp": disturbances.solar_radiation(
             R_bi, env["sun"], env["eclipsed"], params.srp_area_m2,
-            params.reflectance, cp_offset),
+            params.reflectance, cp_offset, params.central_solar_flux_scale),
         "mag": disturbances.magnetic(D_res, B_body),
         "aero": disturbances.aerodynamic(
             R_bi, env["v"], env["rho"], params.drag_coeff,
@@ -105,7 +117,21 @@ def _disturbance_torques(env: dict, R_bi: np.ndarray, B_body: np.ndarray,
 def simulate(params: ADCSParams) -> dict:
     I = params.get_inertia()
     elements = params.orbit_elements()
-    mu = GM_EARTH
+    # Central body the satellite orbits (its parent): Earth by default, or any
+    # planet/moon when a satellite is added around one.
+    mu = params.central_mu if params.central_mu else GM_EARTH
+    if params.central_radius_m is None:
+        params.central_radius_m = R_EARTH_M
+    if params.central_dipole_tm3 is None:
+        params.central_dipole_tm3 = GEOMAG_DIPOLE_TM3
+    if params.central_atmos_rho0 is None:
+        params.central_atmos_rho0 = 1e-12
+        params.central_atmos_ref_alt_m = 500_000.0
+        params.central_atmos_scale_height_m = 60_000.0
+    if params.central_solar_flux_scale is None:
+        params.central_solar_flux_scale = 1.0
+    if params.central_j2 is None:
+        params.central_j2 = J2
     period_s = orbit.orbital_period_s(params.semi_major_axis_m, mu)
 
     is_slew = params.mode == "slew"
@@ -131,7 +157,9 @@ def simulate(params: ADCSParams) -> dict:
     desat_level = params.desat_trigger_fraction * params.rw_max_momentum_nms
 
     # Auto-size the B-dot gain to saturate the magnetorquers near perigee.
-    B_perigee = GEOMAG_DIPOLE_TM3 / (
+    # A field-free body (zero dipole) leaves the gain harmless; detumbling then
+    # simply produces no magnetic torque, as physically expected.
+    B_perigee = params.central_dipole_tm3 / (
         params.semi_major_axis_m * (1 - params.eccentricity)) ** 3
     omega0 = np.radians(max(params.initial_tumble_deg_s, 0.5))
     bdot_gain = params.bdot_gain
@@ -316,7 +344,8 @@ def simulate(params: ADCSParams) -> dict:
 
     # J2 secular drift rates: justify the fixed-Keplerian-orbit assumption.
     j2_rates = orbit.j2_secular_rates(
-        params.semi_major_axis_m, params.eccentricity, params.inclination_deg, mu)
+        params.semi_major_axis_m, params.eccentricity, params.inclination_deg, mu,
+        r_body_m=params.central_radius_m, j2=params.central_j2)
     j2_rates["drift_over_run"] = orbit.drift_over_window(j2_rates, total_s)
 
     # Determination / pointing budget: knowledge error (estimate vs truth) vs

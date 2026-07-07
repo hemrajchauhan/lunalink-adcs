@@ -7,7 +7,13 @@
         "rotation_period_h": 609.12,
         "has_ring": false,
         "parent": null,
-        "orbit": null
+        "orbit": null,
+        "mass_kg": 1.989e+30,
+        "magnetic_dipole_tm3": 0.0,
+        "atmosphere_ref_density_kg_m3": 0.0,
+        "atmosphere_ref_altitude_m": 0.0,
+        "atmosphere_scale_height_m": 60000.0,
+        "j2": 0.0
     },
     {
         "name": "Mercury",
@@ -24,7 +30,13 @@
             "raan_deg": 48.3,
             "arg_periapsis_deg": 29.1,
             "mean_anomaly_epoch_deg": 174.8
-        }
+        },
+        "mass_kg": 3.301e+23,
+        "magnetic_dipole_tm3": 0.0,
+        "atmosphere_ref_density_kg_m3": 0.0,
+        "atmosphere_ref_altitude_m": 0.0,
+        "atmosphere_scale_height_m": 60000.0,
+        "j2": 5.03e-05
     },
     {
         "name": "Venus",
@@ -41,7 +53,13 @@
             "raan_deg": 76.7,
             "arg_periapsis_deg": 54.9,
             "mean_anomaly_epoch_deg": 50.4
-        }
+        },
+        "mass_kg": 4.867e+24,
+        "magnetic_dipole_tm3": 0.0,
+        "atmosphere_ref_density_kg_m3": 0.0,
+        "atmosphere_ref_altitude_m": 0.0,
+        "atmosphere_scale_height_m": 60000.0,
+        "j2": 4.458e-06
     },
     {
         "name": "Earth",
@@ -58,7 +76,13 @@
             "raan_deg": 0.0,
             "arg_periapsis_deg": 102.9,
             "mean_anomaly_epoch_deg": 100.5
-        }
+        },
+        "mass_kg": 5.972e+24,
+        "magnetic_dipole_tm3": 7940000000000000.0,
+        "atmosphere_ref_density_kg_m3": 1e-12,
+        "atmosphere_ref_altitude_m": 500000.0,
+        "atmosphere_scale_height_m": 60000.0,
+        "j2": 0.0010826
     },
     {
         "name": "Moon",
@@ -75,7 +99,13 @@
             "raan_deg": 0.0,
             "arg_periapsis_deg": 0.0,
             "mean_anomaly_epoch_deg": 0.0
-        }
+        },
+        "mass_kg": 7.342e+22,
+        "magnetic_dipole_tm3": 0.0,
+        "atmosphere_ref_density_kg_m3": 0.0,
+        "atmosphere_ref_altitude_m": 0.0,
+        "atmosphere_scale_height_m": 60000.0,
+        "j2": 0.000203
     },
     {
         "name": "Mars",
@@ -92,7 +122,13 @@
             "raan_deg": 49.6,
             "arg_periapsis_deg": 286.5,
             "mean_anomaly_epoch_deg": 19.4
-        }
+        },
+        "mass_kg": 6.417e+23,
+        "magnetic_dipole_tm3": 0.0,
+        "atmosphere_ref_density_kg_m3": 0.0,
+        "atmosphere_ref_altitude_m": 0.0,
+        "atmosphere_scale_height_m": 60000.0,
+        "j2": 0.00196045
     },
     {
         "name": "Jupiter",
@@ -105,11 +141,17 @@
         "orbit": {
             "semi_major_axis_m": 778570000000.0,
             "eccentricity": 0.0489,
-            "inclination_deg": 1.30,
+            "inclination_deg": 1.3,
             "raan_deg": 100.5,
             "arg_periapsis_deg": 273.9,
             "mean_anomaly_epoch_deg": 19.7
-        }
+        },
+        "mass_kg": 1.898e+27,
+        "magnetic_dipole_tm3": 0.0,
+        "atmosphere_ref_density_kg_m3": 0.0,
+        "atmosphere_ref_altitude_m": 0.0,
+        "atmosphere_scale_height_m": 60000.0,
+        "j2": 0.014736
     },
     {
         "name": "Saturn",
@@ -126,7 +168,13 @@
             "raan_deg": 113.7,
             "arg_periapsis_deg": 339.4,
             "mean_anomaly_epoch_deg": 317.0
-        }
+        },
+        "mass_kg": 5.683e+26,
+        "magnetic_dipole_tm3": 0.0,
+        "atmosphere_ref_density_kg_m3": 0.0,
+        "atmosphere_ref_altitude_m": 0.0,
+        "atmosphere_scale_height_m": 60000.0,
+        "j2": 0.016298
     },
     {
         "name": "Uranus",
@@ -143,7 +191,13 @@
             "raan_deg": 74.0,
             "arg_periapsis_deg": 96.7,
             "mean_anomaly_epoch_deg": 142.2
-        }
+        },
+        "mass_kg": 8.681e+25,
+        "magnetic_dipole_tm3": 0.0,
+        "atmosphere_ref_density_kg_m3": 0.0,
+        "atmosphere_ref_altitude_m": 0.0,
+        "atmosphere_scale_height_m": 60000.0,
+        "j2": 0.003343
     },
     {
         "name": "Neptune",
@@ -160,6 +214,12 @@
             "raan_deg": 131.8,
             "arg_periapsis_deg": 273.2,
             "mean_anomaly_epoch_deg": 256.2
-        }
+        },
+        "mass_kg": 1.024e+26,
+        "magnetic_dipole_tm3": 0.0,
+        "atmosphere_ref_density_kg_m3": 0.0,
+        "atmosphere_ref_altitude_m": 0.0,
+        "atmosphere_scale_height_m": 60000.0,
+        "j2": 0.003411
     }
 ]

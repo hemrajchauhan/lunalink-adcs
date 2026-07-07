@@ -7,7 +7,9 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 
-from ....config import TIME_ACCEL_MIN, TIME_ACCEL_MAX, TIME_ACCELERATION
+from ....config import (
+    TIME_ACCEL_MIN, TIME_ACCEL_MAX, TIME_ACCELERATION, ATTITUDE_PLAYBACK_SECONDS,
+)
 
 # J2000 epoch (2000-01-01 12:00 UTC), used to place the model at "today".
 _J2000 = datetime.datetime(2000, 1, 1, 12, 0, 0, tzinfo=datetime.timezone.utc)
@@ -16,6 +18,9 @@ _J2000 = datetime.datetime(2000, 1, 1, 12, 0, 0, tzinfo=datetime.timezone.utc)
 class VisualizationTab(QWidget):
 
     SLIDER_STEPS = 1000
+    # Attitude-replay speed range, as a multiple of the default playback speed.
+    REPLAY_SPEED_MIN = 0.25
+    REPLAY_SPEED_MAX = 8.0
 
     def __init__(self, scene_manager, parent=None):
         super().__init__(parent)
@@ -29,17 +34,24 @@ class VisualizationTab(QWidget):
         form = QFormLayout(playback)
 
         self.play_button = QPushButton("⏸ Pause")
+        self.play_button.setToolTip("Pause or resume the 3D animation.")
         self.play_button.clicked.connect(self._toggle_play)
 
         self.speed_slider = QSlider(Qt.Orientation.Horizontal)
+        self.speed_slider.setToolTip("How fast simulated time advances in the 3D "
+                                     "view. Right = faster.")
         self.speed_slider.setRange(0, self.SLIDER_STEPS)
         self.speed_slider.setValue(self._accel_to_slider(TIME_ACCELERATION))
         self.speed_slider.valueChanged.connect(self._on_speed)
 
         self.speed_label = QLabel()
+        self.speed_label.setToolTip("Current playback speed (simulated time per "
+                                    "real second).")
         self._update_speed_label(TIME_ACCELERATION)
 
         self.realtime_check = QCheckBox("Real-time (1×)")
+        self.realtime_check.setToolTip("Advance the 3D view at real time "
+                                       "(1 simulated second per second).")
         self.realtime_check.toggled.connect(self._on_realtime)
 
         self.epoch_button = QPushButton("Reset to present day")
@@ -47,8 +59,11 @@ class VisualizationTab(QWidget):
             "Place the planets at their positions for the current date and pause.")
         self.epoch_button.clicked.connect(self._go_to_today)
 
+        speed_label_widget = QLabel("Speed")
+        speed_label_widget.setToolTip("How fast simulated time advances in the "
+                                      "3D view.")
         form.addRow(self.play_button)
-        form.addRow("Speed", self.speed_slider)
+        form.addRow(speed_label_widget, self.speed_slider)
         form.addRow("", self.speed_label)
         form.addRow("", self.realtime_check)
         form.addRow("", self.epoch_button)
@@ -63,7 +78,23 @@ class VisualizationTab(QWidget):
             "its orbit, then returns to a plain box when the replay is complete.")
         self.replay_button.clicked.connect(self._replay_attitude)
         rlayout.addWidget(self.replay_button)
+
+        speed_lbl = QLabel("Replay speed")
+        speed_lbl.setToolTip("How fast the attitude replay plays. Applies both to "
+                             "the automatic playback right after a run and to "
+                             "Replay, and can be changed while it is playing.")
+        rlayout.addWidget(speed_lbl)
+        self.replay_speed_slider = QSlider(Qt.Orientation.Horizontal)
+        self.replay_speed_slider.setToolTip(speed_lbl.toolTip())
+        self.replay_speed_slider.setRange(0, self.SLIDER_STEPS)
+        self.replay_speed_slider.setValue(self._replay_slider_for_factor(1.0))
+        self.replay_speed_slider.valueChanged.connect(self._on_replay_speed)
+        rlayout.addWidget(self.replay_speed_slider)
+        self.replay_speed_label = QLabel()
+        rlayout.addWidget(self.replay_speed_label)
         layout.addWidget(replay)
+        # Push the default speed to the scene so the first run uses it too.
+        self._on_replay_speed(self.replay_speed_slider.value())
 
         inspect = QGroupBox("Inspect an Object")
         ilayout = QVBoxLayout(inspect)
@@ -130,6 +161,24 @@ class VisualizationTab(QWidget):
         if self.scene_manager.can_replay():
             self.scene_manager.replay_last()
             self.play_button.setText("⏸ Pause")
+
+    # -- attitude-replay speed (log slider) -------------------------------
+    def _replay_factor(self, value: int) -> float:
+        frac = value / self.SLIDER_STEPS
+        return self.REPLAY_SPEED_MIN * (
+            self.REPLAY_SPEED_MAX / self.REPLAY_SPEED_MIN) ** frac
+
+    def _replay_slider_for_factor(self, factor: float) -> int:
+        frac = math.log(factor / self.REPLAY_SPEED_MIN) / \
+            math.log(self.REPLAY_SPEED_MAX / self.REPLAY_SPEED_MIN)
+        return int(round(frac * self.SLIDER_STEPS))
+
+    def _on_replay_speed(self, value: int):
+        factor = self._replay_factor(value)
+        seconds = ATTITUDE_PLAYBACK_SECONDS / factor
+        self.scene_manager.set_attitude_playback_seconds(seconds)
+        self.replay_speed_label.setText(
+            f"{factor:.2f}×  ({seconds:.0f} s to play the whole run)")
 
     def _go_to_today(self):
         now = datetime.datetime.now(datetime.timezone.utc)

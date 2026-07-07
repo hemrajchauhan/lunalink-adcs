@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import (
 
 from ...simulation.physics import orbit
 from ...simulation.physics.constants import GM_EARTH, R_EARTH_M
-from ...simulation.parameters import ADCSParams
+from ...simulation.parameters import ADCSParams, resolve_central_body
 from ...simulation.simulator import sizing_summary
 from ...simulation.defaults import load_mission_profile
 from ...simulation.repositories.satellite_repository import SatelliteRepository
@@ -136,11 +136,16 @@ class MissionInfoPanel(QWidget):
 
         o = sat.orbit
         a, e = o.semi_major_axis_m, o.eccentricity
-        P = orbit.orbital_period_s(a, GM_EARTH)
+        # Use the parent body's gravity and radius so the period and altitudes
+        # are correct for a satellite around any planet or moon, not just Earth.
+        central = resolve_central_body(sat.parent)
+        mu = central["central_mu"]
+        r_body = central["central_radius_m"]
+        P = orbit.orbital_period_s(a, mu)
         self._orbit["Semi-major axis"].setText(f"{a/1000:,.0f} km")
         self._orbit["Eccentricity"].setText(f"{e:.4f}")
-        self._orbit["Perigee altitude"].setText(f"{(a*(1-e)-R_EARTH_M)/1000:,.0f} km")
-        self._orbit["Apogee altitude"].setText(f"{(a*(1+e)-R_EARTH_M)/1000:,.0f} km")
+        self._orbit["Perigee altitude"].setText(f"{(a*(1-e)-r_body)/1000:,.0f} km")
+        self._orbit["Apogee altitude"].setText(f"{(a*(1+e)-r_body)/1000:,.0f} km")
         self._orbit["Inclination"].setText(f"{o.inclination_deg}°")
         self._orbit["Orbital period"].setText(f"{P/3600:.2f} h")
 

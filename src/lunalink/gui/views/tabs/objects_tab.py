@@ -10,6 +10,46 @@ from ....simulation.repositories.body_repository import BodyRepository
 from ....simulation.repositories.satellite_repository import SatelliteRepository
 from ...dialogs.add_object_dialog import AddObjectDialog
 
+# Hover explanations for the editable object properties (shown on the label and
+# the field). Keys match the names returned by the repositories.
+_PROPERTY_TIPS = {
+    "Name": "The object's unique name.",
+    "Color": "Colour used to draw the object in the 3D view (e.g. #4488ff).",
+    "Radius (m)": "Physical radius of the body, in metres.",
+    "Axial tilt (deg)": "Tilt of the body's spin axis relative to its orbit plane.",
+    "Rotation period (h)": "Time for one full rotation about its axis "
+                           "(negative spins the other way).",
+    "Has ring": "Whether a Saturn-like ring is drawn (true/false).",
+    "Parent": "The body this object orbits.",
+    "Mass (kg)": "Mass of the object. For a central body it sets the gravity "
+                 "(mu = G*mass) felt by satellites orbiting it.",
+    "Magnetic dipole (T m^3)": "Strength of the body's magnetic dipole field "
+                               "(Earth ~7.94e15). 0 = no global field, so no "
+                               "magnetic torque on satellites.",
+    "Atmosphere density (kg/m^3)": "Reference atmospheric density at the reference "
+                                   "altitude. 0 = airless (no drag).",
+    "Atmosphere ref altitude (m)": "Altitude at which the reference density "
+                                   "applies.",
+    "Atmosphere scale height (m)": "Altitude change over which the density falls "
+                                   "by a factor of 1/e.",
+    "J2 oblateness": "Oblateness coefficient (Earth ~1.08e-3). Drives the reported "
+                     "orbit-plane drift rates; 0 for a perfect sphere.",
+    "Length (m)": "Body size along its X axis.",
+    "Width (m)": "Body size along its Y axis.",
+    "Height (m)": "Body size along its Z axis.",
+    "Distance to parent (m)": "Semi-major axis of the orbit around the parent.",
+    "Semi-major axis (m)": "Average orbit radius (half the ellipse's long axis).",
+    "Eccentricity": "How stretched the orbit is (0 = circle, closer to 1 = "
+                    "very elongated).",
+    "Inclination (deg)": "Tilt of the orbit plane relative to the reference plane.",
+    "RAAN (deg)": "Right ascension of the ascending node: swivels the orbit "
+                  "plane around the vertical axis.",
+    "Arg periapsis (deg)": "Argument of periapsis: rotates the ellipse within "
+                           "its orbit plane.",
+    "Mean anomaly (deg)": "Starting position of the object along its orbit at "
+                          "time zero.",
+}
+
 
 class ObjectsTab(QWidget):
 
@@ -105,10 +145,16 @@ class ObjectsTab(QWidget):
         self.property_fields.clear()
         for name, value in properties:
             field = QLineEdit(str(value))
+            tip = _PROPERTY_TIPS.get(name, "")
+            if tip:
+                field.setToolTip(tip)
+            label = QLabel(name)
+            if tip:
+                label.setToolTip(tip)
             if name.lower() == "color":
-                self.property_layout.addRow(QLabel(name), self._color_row(field))
+                self.property_layout.addRow(label, self._color_row(field))
             else:
-                self.property_layout.addRow(QLabel(name), field)
+                self.property_layout.addRow(label, field)
             self.property_fields[name] = field
 
     def _color_row(self, field: QLineEdit) -> QWidget:

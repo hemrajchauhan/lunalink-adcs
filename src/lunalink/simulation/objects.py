@@ -59,6 +59,16 @@ class CelestialBody(SpaceObject):
     axial_tilt_deg: float = 0.0
     rotation_period_h: float = 24.0
     has_ring: bool = False
+    # Physical properties used by the ADCS simulation when a satellite orbits
+    # this body. mass gives the gravitational parameter (mu = G*mass) for custom
+    # bodies; a magnetic dipole and an exponential atmosphere drive the magnetic
+    # and drag disturbance torques. Defaults model an airless, field-free body.
+    mass_kg: float = 0.0
+    magnetic_dipole_tm3: float = 0.0
+    atmosphere_ref_density_kg_m3: float = 0.0
+    atmosphere_ref_altitude_m: float = 0.0
+    atmosphere_scale_height_m: float = 60_000.0
+    j2: float = 0.0                       # oblateness coefficient (0 = sphere)
 
 
 @dataclass

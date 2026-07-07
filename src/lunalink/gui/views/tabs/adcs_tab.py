@@ -1,9 +1,20 @@
 import numpy as np
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QFormLayout, QGroupBox, QDoubleSpinBox, QComboBox,
-    QPushButton, QLabel,
+    QPushButton, QLabel, QMessageBox,
 )
 from PyQt6.QtCore import pyqtSignal
+
+# Above this many orbits a run can take a noticeable amount of time, so the
+# user is asked to confirm first.
+_LONG_RUN_ORBITS = 30
+
+
+def _labeled(text: str, tip: str) -> QLabel:
+    """A form-row label that shows an explanatory tooltip on hover."""
+    label = QLabel(text)
+    label.setToolTip(tip)
+    return label
 
 from ....simulation.parameters import ADCSParams
 from ....simulation.physics.dynamics import box_inertia
@@ -53,8 +64,12 @@ class ADCSTab(QWidget):
                                       "the fields below, which you can fine-tune.")
         self.mission_combo.currentTextChanged.connect(self._on_mission_changed)
         self.sat_label = QLabel("Not selected")
-        tform.addRow("Mission", self.mission_combo)
-        tform.addRow("Spacecraft", self.sat_label)
+        self.sat_label.setToolTip("The spacecraft flown in this simulation.")
+        tform.addRow(_labeled("Mission", "The spacecraft and orbit preset to "
+                              "simulate. Choose the scenario in the Scenario "
+                              "section below."), self.mission_combo)
+        tform.addRow(_labeled("Spacecraft", "The spacecraft flown in this "
+                              "simulation."), self.sat_label)
         layout.addWidget(target)
 
         sc = QGroupBox("Spacecraft and Initial State")
@@ -68,10 +83,19 @@ class ADCSTab(QWidget):
                            "(filled from the spacecraft mass and dimensions).")
         self.tumble.setToolTip("How fast the spacecraft is spinning at the start "
                                "of the run.")
-        sc_form.addRow("Moment of inertia X [kg·m²]", self.ix)
-        sc_form.addRow("Moment of inertia Y [kg·m²]", self.iy)
-        sc_form.addRow("Moment of inertia Z [kg·m²]", self.iz)
-        sc_form.addRow("Initial tumble rate [°/s]", self.tumble)
+        sc_form.addRow(_labeled("Moment of inertia X [kg·m²]",
+                       "Resistance to rotation about the body X axis, computed "
+                       "from the spacecraft mass and dimensions."), self.ix)
+        sc_form.addRow(_labeled("Moment of inertia Y [kg·m²]",
+                       "Resistance to rotation about the body Y axis, computed "
+                       "from the spacecraft mass and dimensions."), self.iy)
+        sc_form.addRow(_labeled("Moment of inertia Z [kg·m²]",
+                       "Resistance to rotation about the body Z axis, computed "
+                       "from the spacecraft mass and dimensions."), self.iz)
+        sc_form.addRow(_labeled("Initial tumble rate [°/s]",
+                       "How fast the spacecraft is spinning at the start of the "
+                       "run (used by the detumble and full-mission scenarios)."),
+                       self.tumble)
         layout.addWidget(sc)
 
         act = QGroupBox("Actuators")
@@ -85,9 +109,18 @@ class ADCSTab(QWidget):
                                "store before it saturates and must be desaturated.")
         self.rw_torque.setToolTip("Maximum torque each reaction wheel can apply. "
                                   "Limits how aggressively the spacecraft can turn.")
-        act_form.addRow("Magnetorquer strength [A·m²]", self.dipole)
-        act_form.addRow("Reaction-wheel capacity [N·m·s]", self.rw_max)
-        act_form.addRow("Reaction-wheel max torque [N·m]", self.rw_torque)
+        act_form.addRow(_labeled("Magnetorquer strength [A·m²]",
+                        "Maximum magnetic dipole the torque rods can produce "
+                        "(used for detumbling and wheel desaturation)."),
+                        self.dipole)
+        act_form.addRow(_labeled("Reaction-wheel capacity [N·m·s]",
+                        "Maximum angular momentum each reaction wheel can store "
+                        "before it saturates and must be desaturated."),
+                        self.rw_max)
+        act_form.addRow(_labeled("Reaction-wheel max torque [N·m]",
+                        "Maximum torque each reaction wheel can apply, which "
+                        "limits how aggressively the spacecraft can turn."),
+                        self.rw_torque)
         layout.addWidget(act)
 
         scen = QGroupBox("Scenario")
@@ -96,15 +129,21 @@ class ADCSTab(QWidget):
         self.mode.addItems(_MODE_LABELS)
         self.mode.setToolTip(_MODE_TOOLTIP)
         self.mode.currentIndexChanged.connect(self._on_mode_changed)
-        self.n_orbits = _spin(1, 20, 3, decimals=0, step=1)
+        self.n_orbits = _spin(1, 100000, 3, decimals=0, step=1)
         self.n_orbits.setToolTip("How many orbits the simulation covers "
-                                 "(not used for a slew, which is a short event).")
+                                 "(not used for a slew, which is a short event). "
+                                 "Large values take longer to compute.")
         self.slew_angle = _spin(1, 180, 90, decimals=0, step=5)
         self.slew_angle.setToolTip("Angle of the rest-to-rest reorientation "
                                    "(only used in Slew maneuver mode).")
-        scen_form.addRow("Control mode", self.mode)
-        scen_form.addRow("Simulated duration [orbits]", self.n_orbits)
-        scen_form.addRow("Slew angle [°]", self.slew_angle)
+        scen_form.addRow(_labeled("Control mode",
+                         "The scenario to simulate. " + _MODE_TOOLTIP), self.mode)
+        scen_form.addRow(_labeled("Simulated duration [orbits]",
+                         "How many orbits the simulation covers. Large values "
+                         "run longer; not used for a slew."), self.n_orbits)
+        scen_form.addRow(_labeled("Slew angle [°]",
+                         "Angle of the rest-to-rest reorientation, used only in "
+                         "Slew maneuver mode."), self.slew_angle)
         layout.addWidget(scen)
 
         self.run_button = QPushButton("Run Simulation")
@@ -207,6 +246,18 @@ class ADCSTab(QWidget):
         return adcs_params
 
     def _emit_params(self):
+        # Warn before a long run: many orbits means many integration steps.
+        is_slew = _MODE_KEYS[self.mode.currentIndex()] == "slew"
+        n = int(self.n_orbits.value())
+        if not is_slew and n > _LONG_RUN_ORBITS:
+            reply = QMessageBox.question(
+                self, "Long simulation",
+                f"Simulating {n} orbits may take a significant amount of time. "
+                "Continue?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No)
+            if reply != QMessageBox.StandardButton.Yes:
+                return
         self.status.setStyleSheet("color: #cfd6e4;")
         self.status.setText(f"Running simulation for "
                             f"{self.mission_combo.currentText()}…")

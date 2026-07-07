@@ -1,22 +1,14 @@
 [
     {
-        "name": "LunaLink Detumble",
+        "name": "LunaLink",
         "satellite": "LunaLink",
-        "description": "B-dot magnetic detumbling from the initial tumble rate.",
+        "description": "LunaLink attitude control on its Molniya relay orbit. Pick the control mode (detumble, sun-pointing, full mission, or slew) in the Scenario section to choose what to simulate.",
         "simulation": {
-            "mode": "detumble",
+            "mode": "full",
             "initial_tumble_deg_s": 10.0,
             "magnetorquer_max_dipole_am2": 50.0,
-            "n_orbits": 4.0
-        }
-    },
-    {
-        "name": "LunaLink Sun-pointing",
-        "satellite": "LunaLink",
-        "description": "Quaternion-PD sun-pointing with reaction wheels and magnetic desaturation.",
-        "simulation": {
-            "mode": "sun_pointing",
             "rw_max_momentum_nms": 4.0,
+            "rw_max_torque_nm": 0.05,
             "n_orbits": 4.0
         }
     }
