@@ -87,7 +87,12 @@ a combined detumble-then-point mission, and a commanded reorientation
 (slew). An attitude estimator that combines a gyroscope with a star
 tracker runs in parallel with the true motion, so the results can
 separate how accurately the spacecraft \emph{knows} its attitude from how
-accurately it \emph{holds} it.
+accurately it \emph{holds} it. The environment itself, meaning the
+gravity, magnetic field, atmosphere and sunlight, is taken from whichever
+body the spacecraft orbits, so the same tool can run any satellite mission
+around any planet or moon (an airless, field-free body simply produces no
+drag or magnetic torque); the results in this report apply it to LunaLink
+around Earth.
 
 The rotation of the body follows Euler's equation, and the attitude
 (stored as a quaternion \(\mathbf q\), a four-number representation of
@@ -664,12 +669,15 @@ later code changes cannot alter the physics unnoticed.
 physics/GUI architecture, the PyQt6 interface, plot design,
 documentation, and the draft of this report.
 
-\textbf{What I had to correct.} The AI's first correction of the
-estimator (rejecting large residuals) did not stop the divergence,
-because the aliased residuals appear small. The working correction
-suspends bias estimation based on the expected rotation between
-measurements instead. Every number in this report is reproduced from the
-committed code with one command.
+\textbf{What I had to correct.} The estimator learns the gyro bias from
+the gap between the star tracker's measured attitude and the gyro's
+prediction. The AI's first fix discarded large gaps, assuming they were
+bad readings, but that did not stop the bias estimate from drifting: while
+the spacecraft is tumbling it can turn more than a full revolution between
+two star-tracker readings, so the gap wraps around and looks small even
+though the real motion is huge, and the check never fired. The working fix
+instead pauses bias learning whenever the spacecraft is expected to rotate
+too far between readings, and resumes it once the spin has slowed.
 
 % -------------------------------------------------------------------------
 \section{References}
