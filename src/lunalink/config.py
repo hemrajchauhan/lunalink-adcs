@@ -63,6 +63,16 @@ MOON_SATELLITE_CLEARANCE = 1.2
 # fixed-size marker so they remain visible.
 SATELLITE_DISPLAY_SIZE = 0.6
 
+# Body-axes triad drawn on a satellite during an attitude playback: length as a
+# multiple of the satellite marker size (long enough to read the orientation).
+SATELLITE_AXES_LENGTH_FACTOR = 4.5
+
+# Attitude playback: after a simulation, the satellite's orientation history is
+# replayed over this many real seconds (regardless of the orbit-view speed
+# slider) so the whole detumble / pointing sequence is watchable rather than
+# flashing by. When it finishes, the satellite reverts to a plain box.
+ATTITUDE_PLAYBACK_SECONDS = 18.0
+
 # Time: how many simulated seconds pass per real animation second, and the
 # animation refresh rate. Default is gentle (1 sim-hour per real second) so
 # rotations are visible; the Visualization tab slider goes much faster for

@@ -176,11 +176,6 @@ class ADCSTab(QWidget):
 
     @property
     def current_satellite_name(self) -> str | None:
-        """Name of the satellite of the selected mission (for the 3D view)."""
-        return self._satellite.name if self._satellite is not None else None
-
-    @property
-    def current_satellite_name(self) -> str | None:
         """Name of the spacecraft of the selected mission (drives the 3D
         attitude animation after a run)."""
         return self._satellite.name if self._satellite is not None else None

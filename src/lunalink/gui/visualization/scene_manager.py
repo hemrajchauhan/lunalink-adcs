@@ -36,6 +36,14 @@ class SceneManager:
         # each frame and a body-axes triad is drawn on it.
         self.attitude_history = {}
         self._axes_actors = {}            # name -> [x, y, z line actors]
+        # Dedicated attitude-playback clock (separate from the orbit animation
+        # so the orientation replays at a fixed, watchable pace).
+        self._playback_timer = QTimer()
+        self._playback_timer.timeout.connect(self._on_playback_tick)
+        self._playback = None
+        # The most recent simulated attitude, kept so it can be replayed on
+        # demand (the Replay button) after it has reverted to a plain box.
+        self._last_attitude = None        # (name, t_s, quaternions)
         self.display_radius = {}
         self.child_scale = {}             # name -> metres->units scale for moons/sats
         self.scene_positions = {}
@@ -319,15 +327,105 @@ class SceneManager:
         """
         if name not in self.satellite_actors:
             return
-        self.attitude_history[name] = (
-            np.asarray(t_s, dtype=float), np.asarray(quaternions, dtype=float))
+        t_arr = np.asarray(t_s, dtype=float)
+        quat_arr = np.asarray(quaternions, dtype=float)
+        self.attitude_history[name] = (t_arr, quat_arr)
+        self._last_attitude = (name, t_arr, quat_arr)
         self._ensure_axes_actors(name)
         self._refresh_actor_transforms()
         self.plotter.render()
 
+    def can_replay(self) -> bool:
+        """True if there is a stored attitude run to replay."""
+        return self._last_attitude is not None
+
+    def replay_last(self):
+        """Replay the most recent simulated attitude (the Replay button),
+        without re-running the simulation."""
+        if self._last_attitude is None:
+            return
+        name, t_arr, quat_arr = self._last_attitude
+        if name not in self.satellite_actors:
+            return
+        self.set_attitude_history(name, t_arr, quat_arr)
+        self.play_attitude(name)
+
+    def play_attitude(self, name: str):
+        """Replay this satellite's simulated attitude from start to finish over
+        a fixed, watchable duration (``ATTITUDE_PLAYBACK_SECONDS``), independent
+        of the orbit-view speed slider. The satellite shows a body-axes triad
+        and rotates through the run; when the replay finishes it reverts to a
+        plain box so the user can see the depiction is complete."""
+        if name not in self.attitude_history:
+            return
+        t_arr, _ = self.attitude_history[name]
+        if len(t_arr) < 2:
+            return
+        # Pause the normal orbit animation; the playback clock drives the scene.
+        self._timer.stop()
+        self._playback = {
+            "name": name,
+            "t0": float(t_arr[0]),
+            "t1": float(t_arr[-1]),
+            "elapsed": 0.0,
+            "duration": max(float(config.ATTITUDE_PLAYBACK_SECONDS), 0.1),
+        }
+        self.sim_time_s = self._playback["t0"]
+        self._update_positions(self.sim_time_s)
+        self._refresh_actor_transforms()
+        self.plotter.render()
+        self._playback_timer.start(int(1000 / ANIMATION_FPS))
+
+    def _on_playback_tick(self):
+        pb = self._playback
+        if pb is None:
+            self._playback_timer.stop()
+            return
+        pb["elapsed"] += 1.0 / ANIMATION_FPS
+        frac = pb["elapsed"] / pb["duration"]
+        if frac >= 1.0:
+            # Land exactly on the final attitude, then revert to a plain box.
+            self.sim_time_s = pb["t1"]
+            self._update_positions(self.sim_time_s)
+            self._refresh_actor_transforms()
+            self._finish_playback()
+            return
+        # Sweep the whole run: the satellite travels its orbit(s) AND rotates,
+        # so the tumble is seen settling as the spacecraft goes around.
+        self.sim_time_s = pb["t0"] + frac * (pb["t1"] - pb["t0"])
+        self._update_positions(self.sim_time_s)
+        self._refresh_actor_transforms()
+        self.plotter.render()
+
+    def _finish_playback(self):
+        """End the attitude replay: drop the axes triad and show the satellite
+        as a plain box again, then resume the normal orbit animation."""
+        name = self._playback["name"] if self._playback else None
+        self._playback_timer.stop()
+        self._playback = None
+        if name is not None:
+            self._clear_attitude(name)
+        self.plotter.render()
+        self.start_animation()
+
+    def _clear_attitude(self, name: str):
+        """Remove a satellite's simulated attitude and its axes triad, reverting
+        the mesh to a plain, unrotated box at its orbital position."""
+        self.attitude_history.pop(name, None)
+        for axis_actor in self._axes_actors.pop(name, ()):
+            try:
+                self.plotter.remove_actor(axis_actor)
+            except Exception:
+                pass
+        actor = self.satellite_actors.get(name)
+        if actor is not None:
+            actor.user_matrix = np.eye(4)
+            if name in self.scene_positions:
+                actor.position = tuple(self.scene_positions[name])
+
     def _ensure_axes_actors(self, name):
         """Create (or re-create) the body-axes triad for a satellite."""
-        length = SATELLITE_DISPLAY_SIZE * 1.9
+        length = SATELLITE_DISPLAY_SIZE * config.SATELLITE_AXES_LENGTH_FACTOR
         actors = []
         for axis, direction, color in (("x", (1, 0, 0), "#ff6b6b"),
                                        ("y", (0, 1, 0), "#4ecf7d"),
